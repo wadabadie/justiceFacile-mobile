@@ -5,6 +5,8 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../shared/widgets/app_bottom_nav.dart';
+import '../../auth/domain/entities/user_entity.dart';
+import '../../auth/infrastructure/auth_repository_impl.dart';
 import '../../onboarding/infrastructure/onboarding_repository_impl.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -20,10 +22,18 @@ class _HomeScreenState extends State<HomeScreen> {
   final _tipVbg      = GlobalKey();
   final _tipMessages = GlobalKey();
 
+  UserEntity? _user;
+
   @override
   void initState() {
     super.initState();
+    _loadUser();
     _maybeShowTips();
+  }
+
+  Future<void> _loadUser() async {
+    final user = await AuthRepositoryImpl().restoreSession();
+    if (mounted) setState(() => _user = user);
   }
 
   Future<void> _maybeShowTips() async {
@@ -46,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: AppColors.fond,
       body: Column(
         children: [
-          _HomeHeader(s: s, tipSearch: _tipSearch),
+          _HomeHeader(s: s, tipSearch: _tipSearch, user: _user),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(18, 36, 18, 100),
@@ -94,12 +104,25 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _HomeHeader extends StatelessWidget {
-  const _HomeHeader({required this.s, required this.tipSearch});
+  const _HomeHeader({required this.s, required this.tipSearch, required this.user});
   final AppStrings s;
   final GlobalKey tipSearch;
+  final UserEntity? user;
+
+  String _roleLabel(String role, AppStrings s) => switch (role) {
+    'juriste'      => s.roleJuriste,
+    'psychologue'  => s.rolePsychologue,
+    'ong'          => s.roleOng,
+    _              => s.roleCitoyen,
+  };
 
   @override
   Widget build(BuildContext context) {
+    final displayName = user != null
+        ? (user!.firstName.isNotEmpty ? user!.firstName : user!.fullName)
+        : '...';
+    final roleLabel = user != null ? _roleLabel(user!.role, s) : '';
+
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -171,10 +194,43 @@ class _HomeHeader extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(s.homeGreeting,
-                      style: const TextStyle(fontFamily: 'GoogleSans', fontSize: 17, color: Color(0x99FFFFFF), fontWeight: FontWeight.w500)),
-                  const Text('Marie Dupont',
-                      style: TextStyle(fontFamily: 'GoogleSans', fontSize: 25, fontWeight: FontWeight.w700, color: AppColors.blanc)),
+                  Row(
+                    children: [
+                      Text(s.homeGreeting,
+                          style: const TextStyle(
+                            fontFamily: 'GoogleSans',
+                            fontSize: 17,
+                            color: Color(0x99FFFFFF),
+                            fontWeight: FontWeight.w500,
+                          )),
+                      if (roleLabel.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.or.withAlpha(40),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: AppColors.or.withAlpha(80)),
+                          ),
+                          child: Text(roleLabel,
+                              style: const TextStyle(
+                                fontFamily: 'GoogleSans',
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.orPale,
+                              )),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(displayName,
+                      style: const TextStyle(
+                        fontFamily: 'GoogleSans',
+                        fontSize: 25,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.blanc,
+                      )),
                   const SizedBox(height: 14),
                   Showcase(
                     key: tipSearch,
@@ -191,7 +247,11 @@ class _HomeHeader extends StatelessWidget {
                           const Icon(Icons.search, color: Color(0x80FFFFFF), size: 20),
                           const SizedBox(width: 10),
                           Text(s.homeSearch,
-                              style: const TextStyle(fontFamily: 'GoogleSans', fontSize: 18, color: Color(0x80FFFFFF))),
+                              style: const TextStyle(
+                                fontFamily: 'GoogleSans',
+                                fontSize: 18,
+                                color: Color(0x80FFFFFF),
+                              )),
                         ],
                       ),
                     ),
