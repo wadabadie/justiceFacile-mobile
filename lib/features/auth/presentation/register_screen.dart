@@ -41,8 +41,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: _passCtrl.text,
         role: _role,
       );
-      // Redirect to email verification — pass email so the screen knows where the code was sent
-      if (mounted) context.go('/verify-email', extra: email);
+      if (mounted) context.go('/home');
     } catch (_) {
       setState(() => _error = s.errGeneric);
     } finally {
