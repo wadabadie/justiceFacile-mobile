@@ -54,6 +54,15 @@ class AppStrings {
     required this.tipMessages,
     required this.tipGotIt,
     required this.tipNext,
+    required this.verifyEmailTitle,
+    required this.verifyEmailDesc,
+    required this.verifyEmailBtn,
+    required this.codeIncomplete,
+    required this.codeInvalid,
+    required this.codeResent,
+    required this.codeNotReceived,
+    required this.resendCode,
+    required this.backToLogin,
     required this.errRequired,
     required this.errEmail,
     required this.errPasswordMin,
@@ -81,6 +90,8 @@ class AppStrings {
   final String homeVbgLabel, homeVbgTitle, homeVbgDesc, homeVbgBtn;
   final String homeQaDossier, homeQaIa, homeQaJuriste, homeQaLois;
   final String tipSearch, tipActions, tipVbg, tipMessages, tipGotIt, tipNext;
+  final String verifyEmailTitle, verifyEmailDesc, verifyEmailBtn;
+  final String codeIncomplete, codeInvalid, codeResent, codeNotReceived, resendCode, backToLogin;
   final String errRequired, errEmail, errPasswordMin, errPasswordMatch, errCredentials, errGeneric;
 
   static AppStrings of(BuildContext context) {
@@ -125,6 +136,15 @@ class AppStrings {
     tipVbg: 'Accès direct au module d\'urgence VBG — signalement confidentiel.',
     tipMessages: 'Vos échanges sécurisés avec vos juristes et psychologues.',
     tipGotIt: 'Compris !', tipNext: 'Suivant',
+    verifyEmailTitle: 'Vérifiez votre email',
+    verifyEmailDesc: 'Saisissez le code à 6 chiffres envoyé à',
+    verifyEmailBtn: 'Valider mon compte',
+    codeIncomplete: 'Saisissez les 6 chiffres du code.',
+    codeInvalid: 'Code incorrect. Vérifiez et réessayez.',
+    codeResent: 'Un nouveau code a été envoyé.',
+    codeNotReceived: 'Code non reçu ?',
+    resendCode: 'Renvoyer',
+    backToLogin: 'Retour à la connexion',
     errRequired: 'Ce champ est obligatoire',
     errEmail: 'Adresse email invalide',
     errPasswordMin: '8 caractères minimum',
@@ -170,6 +190,15 @@ class AppStrings {
     tipVbg: 'Direct access to the GBV emergency module — confidential reporting.',
     tipMessages: 'Your secure exchanges with lawyers and psychologists.',
     tipGotIt: 'Got it!', tipNext: 'Next',
+    verifyEmailTitle: 'Verify your email',
+    verifyEmailDesc: 'Enter the 6-digit code sent to',
+    verifyEmailBtn: 'Verify my account',
+    codeIncomplete: 'Enter all 6 digits of the code.',
+    codeInvalid: 'Invalid code. Please check and try again.',
+    codeResent: 'A new code has been sent.',
+    codeNotReceived: 'Did not receive the code?',
+    resendCode: 'Resend',
+    backToLogin: 'Back to login',
     errRequired: 'This field is required',
     errEmail: 'Invalid email address',
     errPasswordMin: 'Minimum 8 characters',

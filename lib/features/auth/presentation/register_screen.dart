@@ -33,14 +33,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
     setState(() { _loading = true; _error = null; });
     try {
+      final email = _emailCtrl.text.trim();
       await AuthRepositoryImpl().register(
         firstName: _firstCtrl.text.trim(),
         lastName: _lastCtrl.text.trim(),
-        email: _emailCtrl.text.trim(),
+        email: email,
         password: _passCtrl.text,
         role: _role,
       );
-      if (mounted) context.go('/home');
+      // Redirect to email verification — pass email so the screen knows where the code was sent
+      if (mounted) context.go('/verify-email', extra: email);
     } catch (_) {
       setState(() => _error = s.errGeneric);
     } finally {

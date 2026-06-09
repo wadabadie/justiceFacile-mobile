@@ -1,9 +1,9 @@
+import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/constants/api_constants.dart';
 import '../domain/entities/user_entity.dart';
 import '../domain/repositories/i_auth_repository.dart';
 
-// Stub implementation — swap every method body with a real HTTP call (Dio)
-// when the Django API is ready. Keys must stay consistent with restoreSession().
 final class AuthRepositoryImpl implements IAuthRepository {
   static const _kToken     = 'access_token';
   static const _kRefresh   = 'refresh_token';
@@ -11,6 +11,12 @@ final class AuthRepositoryImpl implements IAuthRepository {
   static const _kLastName  = 'user_last_name';
   static const _kEmail     = 'user_email';
   static const _kRole      = 'user_role';
+
+  final _dio = Dio(BaseOptions(
+    connectTimeout: const Duration(seconds: 15),
+    receiveTimeout: const Duration(seconds: 15),
+    headers: {'Content-Type': 'application/json'},
+  ));
 
   @override
   Future<String?> getAccessToken() async {
@@ -20,23 +26,16 @@ final class AuthRepositoryImpl implements IAuthRepository {
 
   @override
   Future<UserEntity> login(String email, String password) async {
-    // TODO: replace with POST /api/v1/auth/login/ — expect {tokens, user}
-    await Future.delayed(const Duration(milliseconds: 900));
-    if (email.isEmpty || password.length < 8) {
-      throw Exception('invalid_credentials');
+    try {
+      final res = await _dio.post(
+        ApiConstants.login,
+        data: {'email': email, 'password': password},
+      );
+      return _handleAuthResponse(res.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      final msg = (e.response?.data as Map?)?['error'] ?? 'invalid_credentials';
+      throw Exception(msg);
     }
-    const token   = 'stub_access_token';
-    const refresh = 'stub_refresh_token';
-    await _persistSession(
-      token: token, refresh: refresh,
-      firstName: 'Marie', lastName: 'Dupont',
-      email: email, role: 'citoyen',
-    );
-    return const UserEntity(
-      id: 1, firstName: 'Marie', lastName: 'Dupont',
-      email: 'marie@example.com', role: 'citoyen',
-      accessToken: token, refreshToken: refresh,
-    );
   }
 
   @override
@@ -47,44 +46,96 @@ final class AuthRepositoryImpl implements IAuthRepository {
     required String password,
     required String role,
   }) async {
-    // TODO: replace with POST /api/v1/auth/register/ — expect {tokens, user}
-    await Future.delayed(const Duration(milliseconds: 900));
-    const token   = 'stub_access_new';
-    const refresh = 'stub_refresh_new';
-    await _persistSession(
-      token: token, refresh: refresh,
-      firstName: firstName, lastName: lastName,
-      email: email, role: role,
-    );
-    return UserEntity(
-      id: 2, firstName: firstName, lastName: lastName,
-      email: email, role: role,
-      accessToken: token, refreshToken: refresh,
-    );
+    try {
+      final res = await _dio.post(
+        ApiConstants.register,
+        data: {
+          'first_name': firstName,
+          'last_name':  lastName,
+          'email':      email,
+          'password1':  password,
+          'password2':  password,
+          'role':       role,
+        },
+      );
+      return _handleAuthResponse(res.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      final msg = (data is Map) ? (data['error'] ?? data['detail'] ?? 'register_failed') : 'register_failed';
+      throw Exception(msg);
+    }
+  }
+
+  // Submits the 6-digit verification code received by email.
+  Future<void> verifyEmail(String email, String code) async {
+    try {
+      await _dio.post(
+        ApiConstants.verifyEmail,
+        data: {'email': email, 'code': code},
+      );
+    } on DioException catch (e) {
+      final msg = (e.response?.data as Map?)?['error'] ?? 'invalid_code';
+      throw Exception(msg);
+    }
+  }
+
+  // Requests a new verification code to be sent by email.
+  Future<void> resendVerificationCode(String email) async {
+    try {
+      await _dio.post(ApiConstants.resendCode, data: {'email': email});
+    } on DioException catch (_) {
+      throw Exception('resend_failed');
+    }
   }
 
   @override
   Future<void> logout() async {
     final p = await SharedPreferences.getInstance();
-    // Clear all session keys on logout — never leave a stale token on device
     for (final k in [_kToken, _kRefresh, _kFirstName, _kLastName, _kEmail, _kRole]) {
       await p.remove(k);
     }
   }
 
-  // Rehydrate UserEntity from local storage — called by SplashScreen to skip login
+  // Rehydrate UserEntity from local storage — called by SplashScreen to skip login.
   Future<UserEntity?> restoreSession() async {
     final p     = await SharedPreferences.getInstance();
     final token = p.getString(_kToken);
     if (token == null) return null;
     return UserEntity(
-      id:        0,
-      firstName: p.getString(_kFirstName) ?? '',
-      lastName:  p.getString(_kLastName)  ?? '',
-      email:     p.getString(_kEmail)     ?? '',
-      role:      p.getString(_kRole)      ?? 'citoyen',
+      id:          0,
+      firstName:   p.getString(_kFirstName) ?? '',
+      lastName:    p.getString(_kLastName)  ?? '',
+      email:       p.getString(_kEmail)     ?? '',
+      role:        p.getString(_kRole)      ?? 'citoyen',
       accessToken: token,
     );
+  }
+
+  UserEntity _handleAuthResponse(Map<String, dynamic> data) {
+    final user    = data['user']    as Map<String, dynamic>;
+    final tokens  = data['tokens']  as Map<String, dynamic>;
+    final profile = user['profile'] as Map<String, dynamic>? ?? {};
+
+    final entity = UserEntity(
+      id:           user['id'] as int? ?? 0,
+      firstName:    user['first_name'] as String? ?? '',
+      lastName:     user['last_name']  as String? ?? '',
+      email:        user['email']      as String? ?? '',
+      role:         profile['role']    as String? ?? 'citoyen',
+      accessToken:  tokens['access']   as String? ?? '',
+      refreshToken: tokens['refresh']  as String? ?? '',
+    );
+
+    _persistSession(
+      token:     entity.accessToken ?? '',
+      refresh:   entity.refreshToken ?? '',
+      firstName: entity.firstName,
+      lastName:  entity.lastName,
+      email:     entity.email,
+      role:      entity.role,
+    );
+
+    return entity;
   }
 
   Future<void> _persistSession({
