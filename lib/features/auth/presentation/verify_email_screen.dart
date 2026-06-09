@@ -111,15 +111,18 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
               ),
               const SizedBox(height: 40),
 
-              // 6-digit code input
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(6, (i) => _DigitBox(
-                  controller: _controllers[i],
-                  focusNode: _focusNodes[i],
-                  onChanged: (v) => _onDigitChanged(i, v),
-                  autofocus: i == 0,
-                )),
+              // 6-digit code input — FittedBox scales down on small screens
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(6, (i) => _DigitBox(
+                    controller: _controllers[i],
+                    focusNode: _focusNodes[i],
+                    onChanged: (v) => _onDigitChanged(i, v),
+                    autofocus: i == 0,
+                  )),
+                ),
               ),
               const SizedBox(height: 12),
 
