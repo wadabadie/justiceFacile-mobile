@@ -1,4 +1,4 @@
-package com.example.justice_facile_client;
+package com.itdreamtech.justicefacile;
 
 import io.flutter.embedding.android.FlutterActivity;
 

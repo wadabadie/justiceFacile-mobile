@@ -27,3 +27,9 @@ doc/api/
 
 .flutter-plugins
 .flutter-plugins-dependencies
+
+# AI tools — never publish
+.claude/
+CLAUDE.md
+*.claude
+.cursorrules
