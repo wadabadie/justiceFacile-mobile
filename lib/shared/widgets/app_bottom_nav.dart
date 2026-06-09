@@ -86,34 +86,31 @@ class _NavChip extends StatelessWidget {
         // Active: pill bleu nuit avec icône + label inline
         // Inactive: icône seule + label dessous
         if (isActive)
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 280),
-            curve: Curves.easeOutCubic,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-            decoration: BoxDecoration(
-              color: AppColors.bleuNuit,
-              borderRadius: BorderRadius.circular(50),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(item.icon, size: 22, color: AppColors.orPale),
-                const SizedBox(width: 6),
-                // Use FittedBox to prevent overflow on narrow screens
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                color: AppColors.bleuNuit,
+                borderRadius: BorderRadius.circular(50),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(item.icon, size: 20, color: AppColors.orPale),
+                  const SizedBox(width: 5),
+                  Text(
                     item.label,
                     style: const TextStyle(
                       fontFamily: 'GoogleSans',
-                      fontSize: 14,
+                      fontSize: 13,
                       fontWeight: FontWeight.w700,
                       color: AppColors.orPale,
-                      letterSpacing: 0.2,
+                      letterSpacing: 0.1,
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           )
         else ...[
