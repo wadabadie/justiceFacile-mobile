@@ -175,7 +175,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    _PrimaryButton(label: s.btnRegister, loading: _loading, onTap: () => _submit(s)),
+                    _PrimaryButton(
+                      label: s.btnRegister,
+                      loading: _loading,
+                      disabled: !_terms,
+                      onTap: () => _submit(s),
+                    ),
                     const SizedBox(height: 20),
 
                     Center(
@@ -327,22 +332,34 @@ class _RoleSelector extends StatelessWidget {
 }
 
 class _PrimaryButton extends StatelessWidget {
-  const _PrimaryButton({required this.label, required this.onTap, this.loading = false});
+  const _PrimaryButton({
+    required this.label,
+    required this.onTap,
+    this.loading = false,
+    this.disabled = false,
+  });
   final String label;
   final VoidCallback onTap;
   final bool loading;
+  final bool disabled;
 
   @override
   Widget build(BuildContext context) {
+    final isBlocked = loading || disabled;
     return GestureDetector(
-      onTap: loading ? null : onTap,
-      child: Container(
+      onTap: isBlocked ? null : onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [AppColors.or, AppColors.orDark]),
+          gradient: LinearGradient(
+            colors: disabled
+                ? [const Color(0xFFBFC5CC), const Color(0xFFA0A8B0)]
+                : [AppColors.or, AppColors.orDark],
+          ),
           borderRadius: BorderRadius.circular(14),
-          boxShadow: const [AppColors.ombreOr],
+          boxShadow: disabled ? [] : const [AppColors.ombreOr],
         ),
         child: loading
             ? const Center(child: SizedBox(
@@ -351,7 +368,9 @@ class _PrimaryButton extends StatelessWidget {
               ))
             : Text(label,
                 textAlign: TextAlign.center,
-                style: AppTextStyles.btn.copyWith(color: AppColors.blanc)),
+                style: AppTextStyles.btn.copyWith(
+                  color: disabled ? const Color(0xFFEEF0F2) : AppColors.blanc,
+                )),
       ),
     );
   }
