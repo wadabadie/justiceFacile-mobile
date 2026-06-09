@@ -16,9 +16,23 @@ class _LoginScreenState extends State<LoginScreen> {
   final _form = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
-  bool _passVisible = false;
-  bool _loading = false;
+  bool _passVisible   = false;
+  bool _loading       = false;
+  bool _googleLoading = false;
   String? _error;
+
+  Future<void> _signInWithGoogle(AppStrings s) async {
+    setState(() { _googleLoading = true; _error = null; });
+    try {
+      await AuthRepositoryImpl().loginWithGoogle();
+      if (mounted) context.go('/home');
+    } catch (e) {
+      if (e.toString().contains('google_cancelled')) return;
+      setState(() => _error = s.errGeneric);
+    } finally {
+      if (mounted) setState(() => _googleLoading = false);
+    }
+  }
 
   Future<void> _submit(AppStrings s) async {
     if (!_form.currentState!.validate()) return;
@@ -121,7 +135,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     _Divider(label: s.orSeparator),
                     const SizedBox(height: 20),
 
-                    _GoogleButton(label: s.continueGoogle),
+                    _GoogleButton(
+                      label: s.continueGoogle,
+                      loading: _googleLoading,
+                      onTap: () => _signInWithGoogle(s),
+                    ),
 
                     const SizedBox(height: 28),
                     Center(
@@ -318,36 +336,46 @@ class _Divider extends StatelessWidget {
 }
 
 class _GoogleButton extends StatelessWidget {
-  const _GoogleButton({required this.label});
+  const _GoogleButton({required this.label, required this.onTap, this.loading = false});
   final String label;
+  final VoidCallback onTap;
+  final bool loading;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColors.blanc,
-        border: Border.all(color: const Color(0x1A000000)),
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: const [BoxShadow(color: Color(0x0F000000), blurRadius: 8, offset: Offset(0, 2))],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 22, height: 22,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const LinearGradient(colors: [Color(0xFF4285F4), Color(0xFF34A853)]),
-            ),
-            child: const Center(
-              child: Text('G', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800)),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Text(label, style: AppTextStyles.label.copyWith(color: AppColors.gris)),
-        ],
+    return GestureDetector(
+      onTap: loading ? null : onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.blanc,
+          border: Border.all(color: const Color(0x1A000000)),
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: const [BoxShadow(color: Color(0x0F000000), blurRadius: 8, offset: Offset(0, 2))],
+        ),
+        child: loading
+            ? const Center(child: SizedBox(
+                width: 22, height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.bleuNuit),
+              ))
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 22, height: 22,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(colors: [Color(0xFF4285F4), Color(0xFF34A853)]),
+                    ),
+                    child: const Center(
+                      child: Text('G', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800)),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(label, style: AppTextStyles.label.copyWith(color: AppColors.gris)),
+                ],
+              ),
       ),
     );
   }

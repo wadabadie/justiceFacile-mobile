@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/api_constants.dart';
 import '../domain/entities/user_entity.dart';
@@ -11,6 +12,8 @@ final class AuthRepositoryImpl implements IAuthRepository {
   static const _kLastName  = 'user_last_name';
   static const _kEmail     = 'user_email';
   static const _kRole      = 'user_role';
+
+  final _googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
 
   final _dio = Dio(BaseOptions(
     connectTimeout: const Duration(seconds: 15),
@@ -56,6 +59,27 @@ final class AuthRepositoryImpl implements IAuthRepository {
           'password':   password,
           'role':       role,
         },
+      );
+      return _handleAuthResponse(res.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw Exception(_extractError(e.response?.data));
+    }
+  }
+
+  // Signs in with Google, then exchanges the Google ID token with the backend
+  // via POST /api/v1/auth/google/ to obtain JWT tokens.
+  Future<UserEntity> loginWithGoogle() async {
+    try {
+      final account = await _googleSignIn.signIn();
+      if (account == null) throw Exception('google_cancelled');
+
+      final auth    = await account.authentication;
+      final idToken = auth.idToken;
+      if (idToken == null) throw Exception('google_no_token');
+
+      final res = await _dio.post(
+        ApiConstants.googleAuth,
+        data: {'id_token': idToken},
       );
       return _handleAuthResponse(res.data as Map<String, dynamic>);
     } on DioException catch (e) {

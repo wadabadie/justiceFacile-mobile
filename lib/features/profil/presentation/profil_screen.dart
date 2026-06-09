@@ -32,6 +32,33 @@ class _ProfilScreenState extends State<ProfilScreen> {
   }
 
   Future<void> _logout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Text(
+          'Se déconnecter',
+          style: TextStyle(fontFamily: 'GoogleSans', fontWeight: FontWeight.w700, color: AppColors.bleuNuit),
+        ),
+        content: const Text(
+          'Voulez-vous vraiment vous déconnecter de votre compte ?',
+          style: TextStyle(fontFamily: 'GoogleSans', fontSize: 16, color: AppColors.gris),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Annuler',
+                style: TextStyle(fontFamily: 'GoogleSans', fontWeight: FontWeight.w600, color: AppColors.grisMid)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Se déconnecter',
+                style: TextStyle(fontFamily: 'GoogleSans', fontWeight: FontWeight.w700, color: AppColors.rouge)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
     setState(() => _loggingOut = true);
     await AuthRepositoryImpl().logout();
     if (mounted) context.go('/');

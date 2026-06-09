@@ -8,4 +8,5 @@ abstract final class ApiConstants {
   static const tokenRefresh = '$baseUrl/auth/token/refresh/';
   static const verifyEmail  = '$baseUrl/auth/verify-email/';
   static const resendCode   = '$baseUrl/auth/resend-verification/';
+  static const googleAuth   = '$baseUrl/auth/google/';
 }

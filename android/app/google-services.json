@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "551062778768",
+    "project_id": "justicefacile-c86e6",
+    "storage_bucket": "justicefacile-c86e6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:551062778768:android:813e0745a62db76f5b3915",
+        "android_client_info": {
+          "package_name": "com.itdreamtech.justicefacile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB162eXUB4UT_W3WUN7CFmPW75LcyIa4QI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
