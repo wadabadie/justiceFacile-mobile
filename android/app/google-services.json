@@ -12,7 +12,20 @@
           "package_name": "com.itdreamtech.justicefacile"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "551062778768-ok7bi2s9f1j65gv5eeq0skco8ddp5b2h.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.itdreamtech.justicefacile",
+            "certificate_hash": "cf6402788464e2d0944b348ea80b45cd397b9c8e"
+          }
+        },
+        {
+          "client_id": "551062778768-hm70bk0f6ne85a7jla0iok7sv6e28ush.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyB162eXUB4UT_W3WUN7CFmPW75LcyIa4QI"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "551062778768-hm70bk0f6ne85a7jla0iok7sv6e28ush.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

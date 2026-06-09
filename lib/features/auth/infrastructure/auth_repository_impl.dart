@@ -13,7 +13,11 @@ final class AuthRepositoryImpl implements IAuthRepository {
   static const _kEmail     = 'user_email';
   static const _kRole      = 'user_role';
 
-  final _googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
+  // serverClientId = Web client (type 3) — required to receive an idToken
+  final _googleSignIn = GoogleSignIn(
+    scopes: ['email', 'profile'],
+    serverClientId: '551062778768-hm70bk0f6ne85a7jla0iok7sv6e28ush.apps.googleusercontent.com',
+  );
 
   final _dio = Dio(BaseOptions(
     connectTimeout: const Duration(seconds: 15),
