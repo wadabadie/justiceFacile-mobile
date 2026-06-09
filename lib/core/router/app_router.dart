@@ -7,6 +7,7 @@ import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/presentation/verify_email_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/dossiers/presentation/dossiers_screen.dart';
+import '../../features/dossiers/presentation/new_dossier_screen.dart';
 import '../../features/profil/presentation/profil_screen.dart';
 import '../../shared/widgets/coming_soon_screen.dart';
 import '../../shared/widgets/app_bottom_nav.dart';
@@ -46,6 +47,10 @@ abstract final class AppRouter {
       GoRoute(
         path: '/dossiers',
         pageBuilder: (_, state) => _fadePage(state, const DossiersScreen()),
+      ),
+      GoRoute(
+        path: '/new-dossier',
+        pageBuilder: (_, state) => _slidePage(state, const NewDossierScreen()),
       ),
       GoRoute(
         path: '/ia',
