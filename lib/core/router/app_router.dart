@@ -6,6 +6,7 @@ import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/presentation/verify_email_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
+import '../../features/profil/presentation/profil_screen.dart';
 import '../../shared/widgets/coming_soon_screen.dart';
 import '../../shared/widgets/app_bottom_nav.dart';
 
@@ -61,9 +62,7 @@ abstract final class AppRouter {
       ),
       GoRoute(
         path: '/profil',
-        pageBuilder: (_, state) => _fadePage(state, const ComingSoonScreen(
-          title: 'Profil', icon: Icons.person_rounded, navTab: NavTab.profil,
-        )),
+        pageBuilder: (_, state) => _fadePage(state, const ProfilScreen()),
       ),
       GoRoute(
         path: '/vbg',
