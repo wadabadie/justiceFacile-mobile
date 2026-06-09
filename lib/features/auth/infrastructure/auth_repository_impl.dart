@@ -53,16 +53,13 @@ final class AuthRepositoryImpl implements IAuthRepository {
           'first_name': firstName,
           'last_name':  lastName,
           'email':      email,
-          'password1':  password,
-          'password2':  password,
+          'password':   password,
           'role':       role,
         },
       );
       return _handleAuthResponse(res.data as Map<String, dynamic>);
     } on DioException catch (e) {
-      final data = e.response?.data;
-      final msg = (data is Map) ? (data['error'] ?? data['detail'] ?? 'register_failed') : 'register_failed';
-      throw Exception(msg);
+      throw Exception(_extractError(e.response?.data));
     }
   }
 
@@ -136,6 +133,19 @@ final class AuthRepositoryImpl implements IAuthRepository {
     );
 
     return entity;
+  }
+
+  // Extracts a human-readable message from DRF error responses.
+  // Handles both {"error": "msg"} and {"field": ["msg"]} formats.
+  String _extractError(dynamic data) {
+    if (data is Map) {
+      if (data.containsKey('error'))  return data['error'] as String;
+      if (data.containsKey('detail')) return data['detail'] as String;
+      // DRF field-level errors: take the first message of the first field
+      final first = data.values.first;
+      if (first is List && first.isNotEmpty) return first.first.toString();
+    }
+    return 'request_failed';
   }
 
   Future<void> _persistSession({
