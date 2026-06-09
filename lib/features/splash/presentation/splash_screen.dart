@@ -66,7 +66,9 @@ class _SplashScreenState extends State<SplashScreen>
     await Future.delayed(const Duration(milliseconds: 800));
     if (!mounted) return;
     final token = await AuthRepositoryImpl().getAccessToken();
-    if (token != null && mounted) {
+    // Only treat real JWT tokens as valid — reject leftover stub values
+    final isRealToken = token != null && token.startsWith('eyJ');
+    if (isRealToken && mounted) {
       setState(() => _autoRedirecting = true);
       await Future.delayed(const Duration(milliseconds: 1000));
       if (mounted) context.go('/home');
@@ -94,9 +96,11 @@ class _SplashScreenState extends State<SplashScreen>
   Widget build(BuildContext context) {
     final s = AppStrings.of(context);
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.gradientSplash),
-        child: Stack(
+      backgroundColor: AppColors.bleuNuit,
+      body: SizedBox.expand(
+        child: Container(
+          decoration: const BoxDecoration(gradient: AppColors.gradientSplash),
+          child: Stack(
           children: [
             // Decorative gold orb — top right
             Positioned(
@@ -192,6 +196,7 @@ class _SplashScreenState extends State<SplashScreen>
               ),
             ),
           ],
+        ),
         ),
       ),
     );
