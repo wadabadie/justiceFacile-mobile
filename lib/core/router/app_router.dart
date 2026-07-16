@@ -9,8 +9,12 @@ import '../../features/home/presentation/home_screen.dart';
 import '../../features/dossiers/presentation/dossiers_screen.dart';
 import '../../features/dossiers/presentation/new_dossier_screen.dart';
 import '../../features/profil/presentation/profil_screen.dart';
-import '../../shared/widgets/coming_soon_screen.dart';
-import '../../shared/widgets/app_bottom_nav.dart';
+import '../../features/vbg/presentation/vbg_screen.dart';
+import '../../features/legal_info/presentation/textes_loi_screen.dart';
+import '../../features/ai_agent/presentation/ai_agent_screen.dart';
+import '../../features/juristes/presentation/juristes_screen.dart';
+import '../../features/messagerie/presentation/messagerie_screen.dart';
+import '../../features/messagerie/presentation/chat_screen.dart';
 
 abstract final class AppRouter {
   static final router = GoRouter(
@@ -54,14 +58,16 @@ abstract final class AppRouter {
       ),
       GoRoute(
         path: '/ia',
-        pageBuilder: (_, state) => _fadePage(state, const ComingSoonScreen(
-          title: 'Assistant IA', icon: Icons.auto_awesome_rounded, navTab: NavTab.ia,
-        )),
+        pageBuilder: (_, state) => _fadePage(state, const AIAgentScreen()),
       ),
       GoRoute(
         path: '/messagerie',
-        pageBuilder: (_, state) => _fadePage(state, const ComingSoonScreen(
-          title: 'Messages', icon: Icons.forum_rounded, navTab: NavTab.messages,
+        pageBuilder: (_, state) => _fadePage(state, const MessagerieScreen()),
+      ),
+      GoRoute(
+        path: '/chat',
+        pageBuilder: (_, state) => _slidePage(state, ChatScreen(
+          contactName: state.extra as String?,
         )),
       ),
       GoRoute(
@@ -70,21 +76,15 @@ abstract final class AppRouter {
       ),
       GoRoute(
         path: '/vbg',
-        pageBuilder: (_, state) => _fadePage(state, const ComingSoonScreen(
-          title: 'Module VBG', icon: Icons.shield_outlined, navTab: NavTab.home,
-        )),
+        pageBuilder: (_, state) => _fadePage(state, const VBGScreen()),
       ),
       GoRoute(
         path: '/juristes',
-        pageBuilder: (_, state) => _fadePage(state, const ComingSoonScreen(
-          title: 'Juristes', icon: Icons.gavel_outlined, navTab: NavTab.home,
-        )),
+        pageBuilder: (_, state) => _fadePage(state, const JuristesScreen()),
       ),
       GoRoute(
         path: '/lois',
-        pageBuilder: (_, state) => _fadePage(state, const ComingSoonScreen(
-          title: 'Textes de loi', icon: Icons.menu_book_outlined, navTab: NavTab.home,
-        )),
+        pageBuilder: (_, state) => _fadePage(state, const TextesLoiScreen()),
       ),
     ],
   );
