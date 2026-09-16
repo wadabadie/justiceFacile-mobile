@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../core/l10n/app_strings.dart';
+import '../../../core/router/role_router.dart';
 import '../../../features/auth/infrastructure/auth_repository_impl.dart';
 import '../../../features/onboarding/infrastructure/onboarding_repository_impl.dart';
 
@@ -75,8 +76,9 @@ class _SplashScreenState extends State<SplashScreen>
     final isRealToken = token != null && token.startsWith('eyJ');
     if (isRealToken && mounted) {
       setState(() => _autoRedirecting = true);
-      await Future.delayed(const Duration(milliseconds: 1000));
-      if (mounted) context.go('/home');
+      final user = await AuthRepositoryImpl().restoreSession();
+      await Future.delayed(const Duration(milliseconds: 800));
+      if (mounted) context.go(routeForRole(user?.role));
     }
   }
 

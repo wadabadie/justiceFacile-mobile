@@ -195,6 +195,21 @@ class AppStrings {
     required this.certFileTooBig, required this.certMissingDocs,
     required this.certSubmittedSuccess, required this.certRecapTitle,
     required this.certNotSpecialisteTitle, required this.certNotSpecialisteDesc,
+    // ── Home spécialiste / ONG ────────────────────────────────────────────────
+    required this.homeSpecCasDispoLabel, required this.homeSpecMesDossiersLabel,
+    required this.homeSpecActionsTitle,
+    required this.homeSpecPlanningLabel, required this.homeSpecPlanningDesc,
+    required this.homeSpecMessagesLabel, required this.homeSpecMessagesDesc,
+    required this.homeSpecProfileLabel, required this.homeSpecProfileDesc,
+    required this.homeSpecCertifCta,
+    required this.homeOngActivitesLabel, required this.homeOngActivitesActionLabel,
+    required this.homeOngActivitesActionDesc, required this.homeOngDossiersActionDesc,
+    // ── Cas disponibles ───────────────────────────────────────────────────────
+    required this.casTitle, required this.casSubtitle,
+    required this.casProposeBtn, required this.casProposeConfirmTitle,
+    required this.casProposeConfirmBtn, required this.casProposeSuccess,
+    required this.casProposeError,
+    required this.casEmptyTitle, required this.casEmptyDesc,
     // ── Politique ─────────────────────────────────────────────────────────────
     required this.politiqueTitle, required this.politiqueLastUpdateLabel,
     required this.politiqueContactTitle, required this.politiqueContactDelay,
@@ -395,6 +410,17 @@ class AppStrings {
   final String certPickError, certUploadError, certFileTooBig, certMissingDocs;
   final String certSubmittedSuccess, certRecapTitle;
   final String certNotSpecialisteTitle, certNotSpecialisteDesc;
+  final String homeSpecCasDispoLabel, homeSpecMesDossiersLabel, homeSpecActionsTitle;
+  final String homeSpecPlanningLabel, homeSpecPlanningDesc;
+  final String homeSpecMessagesLabel, homeSpecMessagesDesc;
+  final String homeSpecProfileLabel, homeSpecProfileDesc;
+  final String homeSpecCertifCta;
+  final String homeOngActivitesLabel, homeOngActivitesActionLabel;
+  final String homeOngActivitesActionDesc, homeOngDossiersActionDesc;
+  final String casTitle, casSubtitle;
+  final String casProposeBtn, casProposeConfirmTitle, casProposeConfirmBtn;
+  final String casProposeSuccess, casProposeError;
+  final String casEmptyTitle, casEmptyDesc;
   // ── Politique ────────────────────────────────────────────────────────────────
   final String politiqueTitle, politiqueLastUpdateLabel;
   final String politiqueContactTitle, politiqueContactDelay;
@@ -465,6 +491,9 @@ class AppStrings {
   String rdvBookSubtitle(String nom) => Localizations.localeOf(_ctx!).languageCode == 'en'
       ? 'With $nom'
       : 'Avec $nom';
+  String casProposeConfirmMsg(String code) => Localizations.localeOf(_ctx!).languageCode == 'en'
+      ? 'Take case $code? The citizen will be notified and can confirm you as their specialist.'
+      : 'Prendre le cas $code ? Le citoyen sera notifié et pourra vous confirmer comme son spécialiste.';
   String politiqueLastUpdate(String date) => '$politiqueLastUpdateLabel $date';
   String activitesPlacesRestantes(int n) => n > 1
       ? activitesPlaces.replaceAll('{n}', '$n').replaceAll('{s}', 's')
@@ -779,6 +808,29 @@ ndPrivacy: 'Vos informations sont confidentielles et ne seront partagées qu\'av
     certRecapTitle: 'Dossier soumis',
     certNotSpecialisteTitle: 'Espace réservé aux spécialistes',
     certNotSpecialisteDesc: 'La certification concerne uniquement les juristes, psychologues et ONG. En tant que citoyen, aucune démarche n\'est nécessaire.',
+    homeSpecCasDispoLabel: 'Cas disponibles',
+    homeSpecMesDossiersLabel: 'Mes dossiers',
+    homeSpecActionsTitle: 'Actions rapides',
+    homeSpecPlanningLabel: 'Mon planning',
+    homeSpecPlanningDesc: 'Gérer mes disponibilités et rendez-vous',
+    homeSpecMessagesLabel: 'Messagerie',
+    homeSpecMessagesDesc: 'Échanges sécurisés avec les citoyens',
+    homeSpecProfileLabel: 'Mon profil',
+    homeSpecProfileDesc: 'Informations et paramètres',
+    homeSpecCertifCta: 'Soumettre mes documents',
+    homeOngActivitesLabel: 'Activités organisées',
+    homeOngActivitesActionLabel: 'Mes activités terrain',
+    homeOngActivitesActionDesc: 'Créer et gérer les activités de mon ONG',
+    homeOngDossiersActionDesc: 'Dossiers VBG assignés à mon ONG',
+    casTitle: 'Cas disponibles',
+    casSubtitle: 'Demandes en attente d\'un spécialiste',
+    casProposeBtn: 'Me proposer sur ce cas',
+    casProposeConfirmTitle: 'Prendre ce cas ?',
+    casProposeConfirmBtn: 'Confirmer',
+    casProposeSuccess: 'Vous êtes proposé sur ce cas. Le citoyen sera notifié.',
+    casProposeError: 'Impossible de vous proposer pour le moment.',
+    casEmptyTitle: 'Aucun cas disponible',
+    casEmptyDesc: 'Il n\'y a pas de nouvelle demande à traiter pour l\'instant. Revenez plus tard.',
 
     politiqueTitle: 'Politique de confidentialité',
     politiqueLastUpdateLabel: 'Dernière mise à jour :',
@@ -1160,6 +1212,29 @@ ndPrivacy: 'Your information is confidential and will only be shared with the sp
     certRecapTitle: 'Submitted file',
     certNotSpecialisteTitle: 'Reserved for specialists',
     certNotSpecialisteDesc: 'Certification is only for lawyers, psychologists and NGOs. As a citizen, no action is required.',
+    homeSpecCasDispoLabel: 'Available cases',
+    homeSpecMesDossiersLabel: 'My files',
+    homeSpecActionsTitle: 'Quick actions',
+    homeSpecPlanningLabel: 'My schedule',
+    homeSpecPlanningDesc: 'Manage my availability and appointments',
+    homeSpecMessagesLabel: 'Messages',
+    homeSpecMessagesDesc: 'Secure exchanges with citizens',
+    homeSpecProfileLabel: 'My profile',
+    homeSpecProfileDesc: 'Information and settings',
+    homeSpecCertifCta: 'Submit my documents',
+    homeOngActivitesLabel: 'Organized activities',
+    homeOngActivitesActionLabel: 'My field activities',
+    homeOngActivitesActionDesc: 'Create and manage my NGO activities',
+    homeOngDossiersActionDesc: 'GBV files assigned to my NGO',
+    casTitle: 'Available cases',
+    casSubtitle: 'Requests awaiting a specialist',
+    casProposeBtn: 'Take this case',
+    casProposeConfirmTitle: 'Take this case?',
+    casProposeConfirmBtn: 'Confirm',
+    casProposeSuccess: 'You have been proposed on this case. The citizen will be notified.',
+    casProposeError: 'Unable to propose you at the moment.',
+    casEmptyTitle: 'No cases available',
+    casEmptyDesc: 'There are no new requests to handle at the moment. Please check back later.',
 
     politiqueTitle: 'Privacy Policy',
     politiqueLastUpdateLabel: 'Last updated:',

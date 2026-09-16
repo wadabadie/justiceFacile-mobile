@@ -2,10 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:showcaseview/showcaseview.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/router/role_router.dart';
+import '../../features/auth/infrastructure/auth_repository_impl.dart';
 
-enum NavTab { home, dossiers, ia, messages, profil, adminDash, adminRapports }
+/// Every tab any layout uses. New layouts pick a subset from this list.
+enum NavTab {
+  home, dossiers, ia, messages, profil,
+  // Specialiste (juriste/psychologue/ong)
+  casDispo, planning,
+  // ONG
+  activites,
+  // Admin
+  adminDash, adminRapports, adminNotifs,
+}
 
-class AppBottomNav extends StatelessWidget {
+class AppBottomNav extends StatefulWidget {
   const AppBottomNav({
     super.key,
     required this.current,
@@ -15,25 +26,63 @@ class AppBottomNav extends StatelessWidget {
   final NavTab current;
   final GlobalKey? messagesTipKey;
 
+  @override
+  State<AppBottomNav> createState() => _AppBottomNavState();
+}
+
+class _AppBottomNavState extends State<AppBottomNav> {
+  String? _role;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRole();
+  }
+
+  Future<void> _loadRole() async {
+    final user = await AuthRepositoryImpl().restoreSession();
+    if (mounted) setState(() => _role = user?.role);
+  }
+
   static const _citizenItems = [
-    _NavItem(tab: NavTab.home,     icon: Icons.home_rounded,        route: '/home',       label: 'Accueil'),
+    _NavItem(tab: NavTab.home,     icon: Icons.home_rounded,         route: '/home',       label: 'Accueil'),
     _NavItem(tab: NavTab.dossiers, icon: Icons.folder_copy_rounded,  route: '/dossiers',   label: 'Dossiers'),
     _NavItem(tab: NavTab.ia,       icon: Icons.auto_awesome_rounded, route: '/ia',         label: 'IA'),
     _NavItem(tab: NavTab.messages, icon: Icons.forum_rounded,        route: '/messagerie', label: 'Messages'),
     _NavItem(tab: NavTab.profil,   icon: Icons.person_rounded,       route: '/profil',     label: 'Profil'),
   ];
 
+  static const _specialisteItems = [
+    _NavItem(tab: NavTab.home,     icon: Icons.dashboard_rounded,    route: '/home-specialiste', label: 'Accueil'),
+    _NavItem(tab: NavTab.casDispo, icon: Icons.inbox_rounded,        route: '/cas-disponibles',  label: 'Cas'),
+    _NavItem(tab: NavTab.dossiers, icon: Icons.folder_copy_rounded,  route: '/dossiers',         label: 'Dossiers'),
+    _NavItem(tab: NavTab.planning, icon: Icons.calendar_month_rounded, route: '/planning',       label: 'Planning'),
+    _NavItem(tab: NavTab.messages, icon: Icons.forum_rounded,        route: '/messagerie',       label: 'Messages'),
+  ];
+
+  static const _ongItems = [
+    _NavItem(tab: NavTab.home,      icon: Icons.dashboard_rounded,      route: '/home-ong',        label: 'Accueil'),
+    _NavItem(tab: NavTab.casDispo,  icon: Icons.inbox_rounded,          route: '/cas-disponibles', label: 'Cas'),
+    _NavItem(tab: NavTab.activites, icon: Icons.event_available_rounded, route: '/activites',      label: 'Activités'),
+    _NavItem(tab: NavTab.dossiers,  icon: Icons.folder_copy_rounded,    route: '/dossiers',        label: 'Dossiers'),
+    _NavItem(tab: NavTab.messages,  icon: Icons.forum_rounded,          route: '/messagerie',      label: 'Messages'),
+  ];
+
   static const _adminItems = [
-    _NavItem(tab: NavTab.adminDash,     icon: Icons.dashboard_rounded,     route: '/admin',    label: 'Dashboard'),
-    _NavItem(tab: NavTab.dossiers,      icon: Icons.folder_copy_rounded,    route: '/dossiers', label: 'Dossiers'),
-    _NavItem(tab: NavTab.messages,      icon: Icons.forum_rounded,          route: '/messagerie', label: 'Messages'),
-    _NavItem(tab: NavTab.adminRapports, icon: Icons.bar_chart_rounded,      route: '/rapports', label: 'Rapports'),
-    _NavItem(tab: NavTab.profil,        icon: Icons.person_rounded,         route: '/profil',   label: 'Profil'),
+    _NavItem(tab: NavTab.adminDash,     icon: Icons.dashboard_rounded,     route: '/admin',         label: 'Dashboard'),
+    _NavItem(tab: NavTab.dossiers,      icon: Icons.folder_copy_rounded,   route: '/dossiers',      label: 'Dossiers'),
+    _NavItem(tab: NavTab.adminNotifs,   icon: Icons.notifications_rounded, route: '/notifications', label: 'Notifs'),
+    _NavItem(tab: NavTab.adminRapports, icon: Icons.bar_chart_rounded,     route: '/rapports',      label: 'Rapports'),
+    _NavItem(tab: NavTab.profil,        icon: Icons.person_rounded,        route: '/profil',        label: 'Profil'),
   ];
 
   List<_NavItem> get _items {
-    const adminTabs = {NavTab.adminDash, NavTab.adminRapports};
-    return (adminTabs.contains(current)) ? _adminItems : _citizenItems;
+    return switch (parseRole(_role)) {
+      UserRole.juriste || UserRole.psychologue => _specialisteItems,
+      UserRole.ong                             => _ongItems,
+      UserRole.admin                           => _adminItems,
+      _                                        => _citizenItems,
+    };
   }
 
   @override
@@ -51,12 +100,12 @@ class AppBottomNav extends StatelessWidget {
           height: 72,
           child: Row(
             children: _items.map((item) {
-              final isActive = item.tab == current;
+              final isActive = item.tab == widget.current;
               final chip = _NavChip(item: item, isActive: isActive);
-              if (item.tab == NavTab.messages && messagesTipKey != null) {
+              if (item.tab == NavTab.messages && widget.messagesTipKey != null) {
                 return Expanded(
                   child: Showcase(
-                    key: messagesTipKey!,
+                    key: widget.messagesTipKey!,
                     description: 'Vos échanges sécurisés avec vos juristes et psychologues.',
                     child: _TapTarget(item: item, chip: chip),
                   ),
@@ -96,8 +145,6 @@ class _NavChip extends StatelessWidget {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Active: pill bleu nuit avec icône + label inline
-        // Inactive: icône seule + label dessous
         if (isActive)
           FittedBox(
             fit: BoxFit.scaleDown,

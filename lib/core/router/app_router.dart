@@ -9,6 +9,9 @@ import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/reset_password_screen.dart';
 import '../../features/auth/presentation/certification_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
+import '../../features/home/presentation/home_specialiste_screen.dart';
+import '../../features/home/presentation/home_ong_screen.dart';
+import '../../features/dossiers/presentation/cas_disponibles_screen.dart';
 import '../../features/dossiers/presentation/dossiers_screen.dart';
 import '../../features/dossiers/presentation/new_dossier_screen.dart';
 import '../../features/dossiers/presentation/dossier_detail_screen.dart';
@@ -89,6 +92,18 @@ abstract final class AppRouter {
       GoRoute(
         path: '/home',
         pageBuilder: (_, state) => _fadePage(state, const HomeScreen()),
+      ),
+      GoRoute(
+        path: '/home-specialiste',
+        pageBuilder: (_, state) => _fadePage(state, const HomeSpecialisteScreen()),
+      ),
+      GoRoute(
+        path: '/home-ong',
+        pageBuilder: (_, state) => _fadePage(state, const HomeOngScreen()),
+      ),
+      GoRoute(
+        path: '/cas-disponibles',
+        pageBuilder: (_, state) => _fadePage(state, const CasDisponiblesScreen()),
       ),
       GoRoute(
         path: '/dossiers',

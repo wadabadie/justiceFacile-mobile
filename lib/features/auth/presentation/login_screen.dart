@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../core/l10n/app_strings.dart';
+import '../../../core/router/role_router.dart';
 import '../infrastructure/auth_repository_impl.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -24,8 +25,8 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _signInWithGoogle(AppStrings s) async {
     setState(() { _googleLoading = true; _error = null; });
     try {
-      await AuthRepositoryImpl().loginWithGoogle();
-      if (mounted) context.go('/home');
+      final user = await AuthRepositoryImpl().loginWithGoogle();
+      if (mounted) context.go(routeForRole(user.role));
     } catch (e) {
       final msg = e.toString();
       if (msg.contains('google_cancelled')) return;
@@ -47,8 +48,8 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_form.currentState!.validate()) return;
     setState(() { _loading = true; _error = null; });
     try {
-      await AuthRepositoryImpl().login(_emailCtrl.text.trim(), _passCtrl.text);
-      if (mounted) context.go('/home');
+      final user = await AuthRepositoryImpl().login(_emailCtrl.text.trim(), _passCtrl.text);
+      if (mounted) context.go(routeForRole(user.role));
     } catch (e) {
       final msg = e.toString().replaceFirst('Exception: ', '');
       setState(() => _error = msg == 'invalid_credentials' ? s.errCredentials : msg);

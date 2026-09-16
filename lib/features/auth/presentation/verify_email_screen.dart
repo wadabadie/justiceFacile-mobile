@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../core/l10n/app_strings.dart';
+import '../../../core/router/role_router.dart';
 import '../infrastructure/auth_repository_impl.dart';
 
 class VerifyEmailScreen extends StatefulWidget {
@@ -33,7 +34,9 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     setState(() { _loading = true; _error = null; });
     try {
       await AuthRepositoryImpl().verifyEmail(widget.email, _code);
-      if (mounted) context.go('/home');
+      if (!mounted) return;
+      final user = await AuthRepositoryImpl().restoreSession();
+      if (mounted) context.go(routeForRole(user?.role));
     } catch (e) {
       setState(() => _error = AppStrings.of(context).codeInvalid);
     } finally {
