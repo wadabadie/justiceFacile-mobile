@@ -13,6 +13,8 @@ class DossierEntity {
     this.specialisteNom,
     this.specialisteRole,
     this.region,
+    this.aResolutionProposee = false,
+    this.nomResolutionProposeur,
   });
 
   final int id;
@@ -26,6 +28,8 @@ class DossierEntity {
   final String? specialisteNom;
   final String? specialisteRole;
   final String? region;
+  final bool aResolutionProposee;
+  final String? nomResolutionProposeur;
 
   bool get isDemande  => statut == DossierStatut.en_attente || statut == DossierStatut.approuve;
   bool get isAssigned => specialisteNom != null;
@@ -100,6 +104,8 @@ class DossierEntity {
       dateMaj:       DateTime.tryParse(json['date_modification'] as String? ?? '') ?? DateTime.now(),
       specialisteNom:  specialisteNom,
       specialisteRole: specialisteRole,
+      aResolutionProposee:    json['a_resolution_proposee'] as bool? ?? false,
+      nomResolutionProposeur: json['nom_resolution_proposeur'] as String?,
     );
   }
 }

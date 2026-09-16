@@ -151,6 +151,11 @@ class AppStrings {
     required this.detailApprovedTitle, required this.detailApprovedDesc,
     required this.detailSpecialisteAssigne, required this.detailComptesRendus,
     required this.detailNoCr, required this.detailCrLoadError,
+    required this.detailResolutionTitle, required this.detailResolutionDesc,
+    required this.detailBtnAccept, required this.detailBtnRefuse,
+    required this.detailResolutionAccepted, required this.detailResolutionRefused,
+    required this.detailResolutionError, required this.detailConfirmRefuseTitle,
+    required this.detailConfirmRefuseMsg,
     // ── Politique ─────────────────────────────────────────────────────────────
     required this.politiqueTitle, required this.politiqueLastUpdateLabel,
     required this.politiqueContactTitle, required this.politiqueContactDelay,
@@ -321,6 +326,10 @@ class AppStrings {
   final String detailApprovedTitle, detailApprovedDesc;
   final String detailSpecialisteAssigne, detailComptesRendus;
   final String detailNoCr, detailCrLoadError;
+  final String detailResolutionTitle, detailResolutionDesc;
+  final String detailBtnAccept, detailBtnRefuse;
+  final String detailResolutionAccepted, detailResolutionRefused, detailResolutionError;
+  final String detailConfirmRefuseTitle, detailConfirmRefuseMsg;
   // ── Politique ────────────────────────────────────────────────────────────────
   final String politiqueTitle, politiqueLastUpdateLabel;
   final String politiqueContactTitle, politiqueContactDelay;
@@ -619,6 +628,15 @@ ndPrivacy: 'Vos informations sont confidentielles et ne seront partagées qu\'av
     detailComptesRendus: 'Comptes-rendus',
     detailNoCr: 'Aucun compte-rendu pour l\'instant.',
     detailCrLoadError: 'Impossible de charger les comptes-rendus.',
+    detailResolutionTitle: 'Proposition de clôture',
+    detailResolutionDesc: 'Votre spécialiste propose de clôturer ce dossier. Confirmez si votre situation est bien résolue.',
+    detailBtnAccept: 'Accepter la clôture',
+    detailBtnRefuse: 'Refuser',
+    detailResolutionAccepted: 'Dossier clôturé avec succès.',
+    detailResolutionRefused: 'Proposition refusée. Le dossier reste actif.',
+    detailResolutionError: 'Impossible de confirmer pour le moment.',
+    detailConfirmRefuseTitle: 'Refuser la clôture ?',
+    detailConfirmRefuseMsg: 'Le dossier restera actif et votre spécialiste continuera de vous accompagner.',
 
     politiqueTitle: 'Politique de confidentialité',
     politiqueLastUpdateLabel: 'Dernière mise à jour :',
@@ -924,6 +942,15 @@ ndPrivacy: 'Your information is confidential and will only be shared with the sp
     detailComptesRendus: 'Reports',
     detailNoCr: 'No reports yet.',
     detailCrLoadError: 'Unable to load reports.',
+    detailResolutionTitle: 'Closure proposal',
+    detailResolutionDesc: 'Your specialist proposes to close this file. Please confirm if your situation is truly resolved.',
+    detailBtnAccept: 'Accept closure',
+    detailBtnRefuse: 'Refuse',
+    detailResolutionAccepted: 'File closed successfully.',
+    detailResolutionRefused: 'Proposal refused. The file remains active.',
+    detailResolutionError: 'Unable to confirm at the moment.',
+    detailConfirmRefuseTitle: 'Refuse the closure?',
+    detailConfirmRefuseMsg: 'The file will stay active and your specialist will continue to support you.',
 
     politiqueTitle: 'Privacy Policy',
     politiqueLastUpdateLabel: 'Last updated:',

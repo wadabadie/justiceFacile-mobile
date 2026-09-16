@@ -16,21 +16,39 @@ class DossierDetailScreen extends StatefulWidget {
 }
 
 class _DossierDetailScreenState extends State<DossierDetailScreen> {
+  late DossierEntity _dossier;
   List<Map<String, dynamic>> _comptesRendus = [];
   bool _loadingCr = true;
   String? _errorCr;
+  bool _submittingResolution = false;
 
   @override
   void initState() {
     super.initState();
-    if (!widget.dossier.isDemande) _loadComptesRendus();
+    _dossier = widget.dossier;
+    if (!_dossier.isDemande) {
+      _refreshDetail();
+      _loadComptesRendus();
+    }
+  }
+
+  Future<void> _refreshDetail() async {
+    try {
+      final res = await ApiService.instance.get(ApiConstants.dossier(_dossier.id));
+      if (!mounted) return;
+      setState(() {
+        _dossier = DossierEntity.fromDossier(res.data as Map<String, dynamic>);
+      });
+    } on DioException {
+      // Silent — the entity passed in is used as a fallback.
+    }
   }
 
   Future<void> _loadComptesRendus() async {
     setState(() { _loadingCr = true; _errorCr = null; });
     try {
       final res = await ApiService.instance.get(
-        ApiConstants.dossierCompteRendu(widget.dossier.id),
+        ApiConstants.dossierCompteRendu(_dossier.id),
       );
       if (!mounted) return;
       setState(() {
@@ -45,9 +63,57 @@ class _DossierDetailScreenState extends State<DossierDetailScreen> {
     }
   }
 
+  Future<void> _confirmerResolution(bool accepte) async {
+    final s = AppStrings.of(context);
+
+    if (!accepte) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(s.detailConfirmRefuseTitle),
+          content: Text(s.detailConfirmRefuseMsg),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(s.btnCancel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: TextButton.styleFrom(foregroundColor: AppColors.rouge),
+              child: Text(s.detailBtnRefuse),
+            ),
+          ],
+        ),
+      );
+      if (ok != true) return;
+    }
+
+    setState(() => _submittingResolution = true);
+    try {
+      await ApiService.instance.post(
+        ApiConstants.dossierConfirmerResolution(_dossier.id),
+        data: {'accepte': accepte},
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(accepte ? s.detailResolutionAccepted : s.detailResolutionRefused),
+        backgroundColor: accepte ? AppColors.emeraude : AppColors.grisMid,
+      ));
+      await _refreshDetail();
+    } on DioException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(s.detailResolutionError),
+        backgroundColor: AppColors.rouge,
+      ));
+    } finally {
+      if (mounted) setState(() => _submittingResolution = false);
+    }
+  }
+
   void _openChat(String canal, String contactName) {
     context.go('/chat', extra: {
-      'dossierId':   widget.dossier.id,
+      'dossierId':   _dossier.id,
       'canal':       canal,
       'contactName': contactName,
     });
@@ -55,7 +121,7 @@ class _DossierDetailScreenState extends State<DossierDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final d = widget.dossier;
+    final d = _dossier;
     return Scaffold(
       backgroundColor: AppColors.fond,
       body: Column(
@@ -86,34 +152,51 @@ class _DossierDetailScreenState extends State<DossierDetailScreen> {
   }
 
   Widget _buildDossierBody(DossierEntity d) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _InfoCard(dossier: d),
-          const SizedBox(height: 16),
-          _DescriptionCard(description: d.description),
-          const SizedBox(height: 16),
-          if (d.specialisteNom != null) ...[
-            _SpecialistCard(
-              nom: d.specialisteNom!,
-              role: d.specialisteRole ?? 'Spécialiste',
-              onChat: () => _openChat(
-                _canalFromRole(d.specialisteRole),
-                d.specialisteNom!,
+    return RefreshIndicator(
+      color: AppColors.bleuNuit,
+      onRefresh: () async {
+        await _refreshDetail();
+        await _loadComptesRendus();
+      },
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (d.aResolutionProposee) ...[
+              _ResolutionBanner(
+                proposeur: d.nomResolutionProposeur,
+                submitting: _submittingResolution,
+                onAccept: () => _confirmerResolution(true),
+                onRefuse: () => _confirmerResolution(false),
               ),
-            ),
+              const SizedBox(height: 16),
+            ],
+            _InfoCard(dossier: d),
             const SizedBox(height: 16),
+            _DescriptionCard(description: d.description),
+            const SizedBox(height: 16),
+            if (d.specialisteNom != null) ...[
+              _SpecialistCard(
+                nom: d.specialisteNom!,
+                role: d.specialisteRole ?? 'Spécialiste',
+                onChat: () => _openChat(
+                  _canalFromRole(d.specialisteRole),
+                  d.specialisteNom!,
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            _ComptesRendusSection(
+              items: _comptesRendus,
+              loading: _loadingCr,
+              error: _errorCr,
+              onRetry: _loadComptesRendus,
+            ),
+            const SizedBox(height: 32),
           ],
-          _ComptesRendusSection(
-            items: _comptesRendus,
-            loading: _loadingCr,
-            error: _errorCr,
-            onRetry: _loadComptesRendus,
-          ),
-          const SizedBox(height: 32),
-        ],
+        ),
       ),
     );
   }
@@ -410,6 +493,133 @@ class _PendingBanner extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Resolution proposal banner ────────────────────────────────────────────────
+
+class _ResolutionBanner extends StatelessWidget {
+  const _ResolutionBanner({
+    required this.proposeur,
+    required this.submitting,
+    required this.onAccept,
+    required this.onRefuse,
+  });
+  final String? proposeur;
+  final bool submitting;
+  final VoidCallback onAccept;
+  final VoidCallback onRefuse;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = AppStrings.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFE8F5E9), Color(0xFFF1F8E9)],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.emeraude.withAlpha(100)),
+        boxShadow: const [
+          BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.emeraude.withAlpha(30),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.task_alt_rounded, color: AppColors.emeraude, size: 24),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  s.detailResolutionTitle,
+                  style: const TextStyle(
+                    fontFamily: 'GoogleSans', fontSize: 16,
+                    fontWeight: FontWeight.w700, color: AppColors.emeraude,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            s.detailResolutionDesc,
+            style: const TextStyle(
+              fontFamily: 'GoogleSans', fontSize: 13,
+              color: AppColors.gris, height: 1.4,
+            ),
+          ),
+          if (proposeur != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              '— $proposeur',
+              style: const TextStyle(
+                fontFamily: 'GoogleSans', fontSize: 12,
+                fontStyle: FontStyle.italic, color: AppColors.grisMid,
+              ),
+            ),
+          ],
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: submitting ? null : onRefuse,
+                  icon: const Icon(Icons.close_rounded, size: 18),
+                  label: Text(s.detailBtnRefuse),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.rouge,
+                    side: BorderSide(color: AppColors.rouge.withAlpha(120)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    textStyle: const TextStyle(
+                      fontFamily: 'GoogleSans', fontSize: 14, fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 2,
+                child: ElevatedButton.icon(
+                  onPressed: submitting ? null : onAccept,
+                  icon: submitting
+                      ? const SizedBox(
+                          width: 16, height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2, color: AppColors.blanc,
+                          ),
+                        )
+                      : const Icon(Icons.check_rounded, size: 18),
+                  label: Text(s.detailBtnAccept),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.emeraude,
+                    foregroundColor: AppColors.blanc,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    textStyle: const TextStyle(
+                      fontFamily: 'GoogleSans', fontSize: 14, fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
