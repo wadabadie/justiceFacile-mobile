@@ -154,6 +154,51 @@ final class AuthRepositoryImpl implements IAuthRepository {
     }
   }
 
+  // Uploads a single file (image or PDF) to Supabase via the backend proxy.
+  // Returns the public URL to be sent later when submitting the certification.
+  Future<String> uploadCertificationDocument({
+    required String filePath,
+    String categorie = 'certification',
+  }) async {
+    try {
+      final form = FormData.fromMap({
+        'categorie': categorie,
+        'fichier': await MultipartFile.fromFile(filePath),
+      });
+      final res = await _dio.post(ApiConstants.uploadDocument, data: form);
+      final url = (res.data as Map<String, dynamic>?)?['url'] as String?;
+      if (url == null || url.isEmpty) throw Exception('upload_no_url');
+      return url;
+    } on DioException catch (e) {
+      final msg = (e.response?.data as Map?)?['error'] ?? 'upload_failed';
+      throw Exception(msg);
+    }
+  }
+
+  // Submits the certification package (URLs of already-uploaded documents +
+  // role-specific text fields) for admin validation.
+  Future<void> submitCertification(Map<String, dynamic> payload) async {
+    try {
+      await _dio.post(ApiConstants.soumettreDocuments, data: payload);
+    } on DioException catch (e) {
+      final body = e.response?.data;
+      if (body is Map && body.isNotEmpty) {
+        // Backend returns {champ: "raison"} for missing/invalid fields.
+        final missing = body.entries.map((entry) => '${entry.key}: ${entry.value}').join('\n');
+        throw Exception(missing);
+      }
+      throw Exception('cert_submit_failed');
+    }
+  }
+
+  // Fetches the current user's raw profile (including certification fields).
+  // Used by the certification screen which needs details not exposed on UserEntity.
+  Future<Map<String, dynamic>> fetchMyProfileRaw() async {
+    final res = await ApiService.instance.get(ApiConstants.me);
+    final data = res.data as Map<String, dynamic>;
+    return (data['profile'] as Map<String, dynamic>?) ?? {};
+  }
+
   // Confirms the reset with the 6-digit OTP received by email + new password.
   Future<void> confirmPasswordReset({
     required String email,

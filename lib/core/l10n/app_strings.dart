@@ -178,6 +178,23 @@ class AppStrings {
     required this.rdvConfirmTitle, required this.rdvConfirmBtn,
     required this.rdvBookedSuccess, required this.rdvBookedError,
     required this.rdvNoSlotsTitle, required this.rdvNoSlotsDesc,
+    // ── Certification ────────────────────────────────────────────────────────
+    required this.certTitle, required this.certMenuLabel,
+    required this.certStatutNonSoumisTitle, required this.certStatutNonSoumisDesc,
+    required this.certStatutEnAttenteTitle, required this.certStatutEnAttenteDesc,
+    required this.certStatutValideTitle, required this.certStatutValideDesc,
+    required this.certStatutRejeteTitle, required this.certStatutRejeteDesc,
+    required this.certLabelNomStructure, required this.certLabelNumeroCarte,
+    required this.certDocsTitle,
+    required this.certDocCartePro, required this.certDocAgrement,
+    required this.certDocDiplome, required this.certDocCni, required this.certDocPhotoOpt,
+    required this.certDocPick, required this.certDocReplace,
+    required this.certDocPickHint, required this.certDocOptional, required this.certDocUploaded,
+    required this.certBtnSubmit, required this.certFooterNote,
+    required this.certPickError, required this.certUploadError,
+    required this.certFileTooBig, required this.certMissingDocs,
+    required this.certSubmittedSuccess, required this.certRecapTitle,
+    required this.certNotSpecialisteTitle, required this.certNotSpecialisteDesc,
     // ── Politique ─────────────────────────────────────────────────────────────
     required this.politiqueTitle, required this.politiqueLastUpdateLabel,
     required this.politiqueContactTitle, required this.politiqueContactDelay,
@@ -366,6 +383,18 @@ class AppStrings {
   final String rdvConfirmTitle, rdvConfirmBtn;
   final String rdvBookedSuccess, rdvBookedError;
   final String rdvNoSlotsTitle, rdvNoSlotsDesc;
+  final String certTitle, certMenuLabel;
+  final String certStatutNonSoumisTitle, certStatutNonSoumisDesc;
+  final String certStatutEnAttenteTitle, certStatutEnAttenteDesc;
+  final String certStatutValideTitle, certStatutValideDesc;
+  final String certStatutRejeteTitle, certStatutRejeteDesc;
+  final String certLabelNomStructure, certLabelNumeroCarte, certDocsTitle;
+  final String certDocCartePro, certDocAgrement, certDocDiplome, certDocCni, certDocPhotoOpt;
+  final String certDocPick, certDocReplace, certDocPickHint, certDocOptional, certDocUploaded;
+  final String certBtnSubmit, certFooterNote;
+  final String certPickError, certUploadError, certFileTooBig, certMissingDocs;
+  final String certSubmittedSuccess, certRecapTitle;
+  final String certNotSpecialisteTitle, certNotSpecialisteDesc;
   // ── Politique ────────────────────────────────────────────────────────────────
   final String politiqueTitle, politiqueLastUpdateLabel;
   final String politiqueContactTitle, politiqueContactDelay;
@@ -717,6 +746,39 @@ ndPrivacy: 'Vos informations sont confidentielles et ne seront partagées qu\'av
     rdvBookedError: 'Impossible de réserver ce créneau.',
     rdvNoSlotsTitle: 'Aucun créneau disponible',
     rdvNoSlotsDesc: 'Votre spécialiste n\'a pas encore publié de disponibilités. Revenez plus tard.',
+    certTitle: 'Ma certification',
+    certMenuLabel: 'Ma certification',
+    certStatutNonSoumisTitle: 'Certification à soumettre',
+    certStatutNonSoumisDesc: 'Vous devez soumettre vos documents pour être visible dans le répertoire des spécialistes et recevoir des demandes de citoyens.',
+    certStatutEnAttenteTitle: 'Certification en cours d\'examen',
+    certStatutEnAttenteDesc: 'Nos administrateurs examinent vos documents. Vous serez notifié dès validation.',
+    certStatutValideTitle: 'Certification validée',
+    certStatutValideDesc: 'Vous êtes désormais visible dans le répertoire et pouvez vous proposer sur des demandes.',
+    certStatutRejeteTitle: 'Certification rejetée',
+    certStatutRejeteDesc: 'Votre dossier a été refusé. Corrigez les points indiqués ci-dessous puis soumettez à nouveau.',
+    certLabelNomStructure: 'Nom de la structure',
+    certLabelNumeroCarte: 'Numéro de carte professionnelle',
+    certDocsTitle: 'Documents à fournir',
+    certDocCartePro: 'Carte professionnelle',
+    certDocAgrement: 'Agrément / récépissé',
+    certDocDiplome: 'Diplôme',
+    certDocCni: 'CNI (recto-verso)',
+    certDocPhotoOpt: 'Photo professionnelle (optionnel)',
+    certDocPick: 'Choisir',
+    certDocReplace: 'Remplacer',
+    certDocPickHint: 'PDF, JPG ou PNG — 10 Mo max',
+    certDocOptional: 'Facultatif',
+    certDocUploaded: 'Envoyé',
+    certBtnSubmit: 'Soumettre pour validation',
+    certFooterNote: 'Vos documents ne sont visibles que par les administrateurs. Aucun autre utilisateur n\'y a accès.',
+    certPickError: 'Impossible d\'ouvrir le sélecteur de fichier.',
+    certUploadError: 'Échec de l\'envoi du fichier. Réessayez.',
+    certFileTooBig: 'Fichier trop volumineux (10 Mo maximum).',
+    certMissingDocs: 'Merci de renseigner tous les champs obligatoires.',
+    certSubmittedSuccess: 'Documents soumis. Vous serez notifié après validation.',
+    certRecapTitle: 'Dossier soumis',
+    certNotSpecialisteTitle: 'Espace réservé aux spécialistes',
+    certNotSpecialisteDesc: 'La certification concerne uniquement les juristes, psychologues et ONG. En tant que citoyen, aucune démarche n\'est nécessaire.',
 
     politiqueTitle: 'Politique de confidentialité',
     politiqueLastUpdateLabel: 'Dernière mise à jour :',
@@ -1065,6 +1127,39 @@ ndPrivacy: 'Your information is confidential and will only be shared with the sp
     rdvBookedError: 'Unable to book this slot.',
     rdvNoSlotsTitle: 'No slots available',
     rdvNoSlotsDesc: 'Your specialist has not yet published any availabilities. Please try again later.',
+    certTitle: 'My certification',
+    certMenuLabel: 'My certification',
+    certStatutNonSoumisTitle: 'Certification to submit',
+    certStatutNonSoumisDesc: 'You must submit your documents to appear in the specialists directory and receive citizen requests.',
+    certStatutEnAttenteTitle: 'Certification under review',
+    certStatutEnAttenteDesc: 'Our administrators are reviewing your documents. You will be notified once validated.',
+    certStatutValideTitle: 'Certification approved',
+    certStatutValideDesc: 'You are now listed in the directory and can propose yourself on requests.',
+    certStatutRejeteTitle: 'Certification rejected',
+    certStatutRejeteDesc: 'Your file was rejected. Fix the points listed below then submit again.',
+    certLabelNomStructure: 'Structure name',
+    certLabelNumeroCarte: 'Professional card number',
+    certDocsTitle: 'Required documents',
+    certDocCartePro: 'Professional card',
+    certDocAgrement: 'Approval / receipt',
+    certDocDiplome: 'Diploma',
+    certDocCni: 'ID card (both sides)',
+    certDocPhotoOpt: 'Professional photo (optional)',
+    certDocPick: 'Choose',
+    certDocReplace: 'Replace',
+    certDocPickHint: 'PDF, JPG or PNG — 10 MB max',
+    certDocOptional: 'Optional',
+    certDocUploaded: 'Uploaded',
+    certBtnSubmit: 'Submit for validation',
+    certFooterNote: 'Your documents are only visible to administrators. No other user has access to them.',
+    certPickError: 'Unable to open the file picker.',
+    certUploadError: 'File upload failed. Please try again.',
+    certFileTooBig: 'File too large (10 MB maximum).',
+    certMissingDocs: 'Please fill in all required fields.',
+    certSubmittedSuccess: 'Documents submitted. You will be notified once validated.',
+    certRecapTitle: 'Submitted file',
+    certNotSpecialisteTitle: 'Reserved for specialists',
+    certNotSpecialisteDesc: 'Certification is only for lawyers, psychologists and NGOs. As a citizen, no action is required.',
 
     politiqueTitle: 'Privacy Policy',
     politiqueLastUpdateLabel: 'Last updated:',

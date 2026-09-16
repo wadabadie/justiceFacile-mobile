@@ -7,6 +7,7 @@ import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/presentation/verify_email_screen.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/reset_password_screen.dart';
+import '../../features/auth/presentation/certification_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/dossiers/presentation/dossiers_screen.dart';
 import '../../features/dossiers/presentation/new_dossier_screen.dart';
@@ -62,6 +63,10 @@ abstract final class AppRouter {
       GoRoute(
         path: '/forgot-password',
         pageBuilder: (_, state) => _slidePage(state, const ForgotPasswordScreen()),
+      ),
+      GoRoute(
+        path: '/certification',
+        pageBuilder: (_, state) => _slidePage(state, const CertificationScreen()),
       ),
       GoRoute(
         path: '/rdv/book',

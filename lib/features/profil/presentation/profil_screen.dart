@@ -288,6 +288,11 @@ class _ProfilScreenState extends State<ProfilScreen> {
     }
   }
 
+  bool _isSpecialiste(String role) {
+    final r = role.toLowerCase();
+    return r == 'juriste' || r == 'psychologue' || r == 'ong';
+  }
+
   String _roleLabel(String role) {
     const map = {
       'citoyen':     'Citoyen(ne)',
@@ -378,6 +383,22 @@ class _ProfilScreenState extends State<ProfilScreen> {
                     ],
                   ),
                   const SizedBox(height: 14),
+
+                  // ── Certification (juriste/psychologue/ONG uniquement) ──
+                  if (u != null && _isSpecialiste(u.role)) ...[
+                    _Section(
+                      children: [
+                        _InfoRow(
+                          icon: Icons.verified_outlined,
+                          label: s.certMenuLabel,
+                          value: s.btnConsult,
+                          onTap: () => context.go('/certification'),
+                          isLast: true,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                  ],
 
                   // ── Sécurité & Confidentialité ──
                   _Section(

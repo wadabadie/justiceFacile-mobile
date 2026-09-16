@@ -55,6 +55,7 @@ abstract final class ApiConstants {
   // ── Spécialistes ────────────────────────────────────────────────────────────
   static const specialistes                  = '$baseUrl/specialistes/';
   static const soumettreDocuments            = '$baseUrl/specialistes/soumettre-documents/';
+  static const uploadDocument                = '$baseUrl/uploads/document/';
   static const adminSpecialistesEnAttente    = '$baseUrl/admin/specialistes-en-attente/';
   static String adminCertifier(int id)       => '$baseUrl/admin/specialistes/$id/certifier/';
 
