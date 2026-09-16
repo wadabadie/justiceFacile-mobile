@@ -21,6 +21,7 @@ class _DossierDetailScreenState extends State<DossierDetailScreen> {
   bool _loadingCr = true;
   String? _errorCr;
   bool _submittingResolution = false;
+  bool _submittingProposition = false;
 
   @override
   void initState() {
@@ -29,6 +30,8 @@ class _DossierDetailScreenState extends State<DossierDetailScreen> {
     if (!_dossier.isDemande) {
       _refreshDetail();
       _loadComptesRendus();
+    } else if (_dossier.statut == DossierStatut.proposition) {
+      _refreshDemande();
     }
   }
 
@@ -41,6 +44,71 @@ class _DossierDetailScreenState extends State<DossierDetailScreen> {
       });
     } on DioException {
       // Silent — the entity passed in is used as a fallback.
+    }
+  }
+
+  Future<void> _refreshDemande() async {
+    try {
+      final res = await ApiService.instance.get('${ApiConstants.demandes}${_dossier.id}/');
+      if (!mounted) return;
+      setState(() {
+        _dossier = DossierEntity.fromDemande(res.data as Map<String, dynamic>);
+      });
+    } on DioException {
+      // Silent — the entity passed in is used as a fallback.
+    }
+  }
+
+  Future<void> _confirmerProposition(bool accepte) async {
+    final s = AppStrings.of(context);
+
+    if (!accepte) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(s.propositionConfirmRefuseTitle),
+          content: Text(s.propositionConfirmRefuseMsg),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(s.btnCancel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: TextButton.styleFrom(foregroundColor: AppColors.rouge),
+              child: Text(s.detailBtnRefuse),
+            ),
+          ],
+        ),
+      );
+      if (ok != true) return;
+    }
+
+    setState(() => _submittingProposition = true);
+    try {
+      await ApiService.instance.post(
+        ApiConstants.demandeConfirmer(_dossier.id),
+        data: {'accepte': accepte},
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(accepte ? s.propositionAccepted : s.propositionRefused),
+        backgroundColor: accepte ? AppColors.emeraude : AppColors.grisMid,
+      ));
+      if (accepte) {
+        // A Dossier has just been created — go back to the list to see it.
+        context.go('/dossiers');
+      } else {
+        await _refreshDemande();
+      }
+    } on DioException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(s.propositionError),
+        backgroundColor: AppColors.rouge,
+      ));
+    } finally {
+      if (mounted) setState(() => _submittingProposition = false);
     }
   }
 
@@ -136,17 +204,33 @@ class _DossierDetailScreenState extends State<DossierDetailScreen> {
   }
 
   Widget _buildDemandeBody(DossierEntity d) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _InfoCard(dossier: d),
-          const SizedBox(height: 16),
-          _DescriptionCard(description: d.description),
-          const SizedBox(height: 16),
-          _PendingBanner(statut: d.statut),
-        ],
+    return RefreshIndicator(
+      color: AppColors.bleuNuit,
+      onRefresh: _refreshDemande,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (d.statut == DossierStatut.proposition) ...[
+              _PropositionBanner(
+                nomSpecialiste: d.nomSpecialisteProposee,
+                roleSpecialiste: d.roleSpecialisteProposee,
+                submitting: _submittingProposition,
+                onAccept: () => _confirmerProposition(true),
+                onRefuse: () => _confirmerProposition(false),
+              ),
+              const SizedBox(height: 16),
+            ],
+            _InfoCard(dossier: d),
+            const SizedBox(height: 16),
+            _DescriptionCard(description: d.description),
+            const SizedBox(height: 16),
+            if (d.statut != DossierStatut.proposition)
+              _PendingBanner(statut: d.statut),
+          ],
+        ),
       ),
     );
   }
@@ -216,23 +300,25 @@ class _DetailHeader extends StatelessWidget {
   final DossierEntity dossier;
 
   Color get _statusColor => switch (dossier.statut) {
-    DossierStatut.urgent     => AppColors.rouge,
-    DossierStatut.resolu     => AppColors.emeraude,
-    DossierStatut.rejete     => AppColors.rouge,
-    DossierStatut.en_cours   => AppColors.or,
-    DossierStatut.approuve   => AppColors.emeraude,
-    DossierStatut.en_attente => AppColors.grisMid,
+    DossierStatut.urgent      => AppColors.rouge,
+    DossierStatut.resolu      => AppColors.emeraude,
+    DossierStatut.rejete      => AppColors.rouge,
+    DossierStatut.en_cours    => AppColors.or,
+    DossierStatut.approuve    => AppColors.emeraude,
+    DossierStatut.proposition => AppColors.orDark,
+    DossierStatut.en_attente  => AppColors.grisMid,
   };
 
   String _statusLabel(BuildContext context) {
     final s = AppStrings.of(context);
     return switch (dossier.statut) {
-      DossierStatut.urgent     => s.statusUrgent,
-      DossierStatut.resolu     => s.statusResolved,
-      DossierStatut.rejete     => s.statusRejected,
-      DossierStatut.en_cours   => s.statusInProgress,
-      DossierStatut.approuve   => s.statusApproved,
-      DossierStatut.en_attente => s.statusPending,
+      DossierStatut.urgent      => s.statusUrgent,
+      DossierStatut.resolu      => s.statusResolved,
+      DossierStatut.rejete      => s.statusRejected,
+      DossierStatut.en_cours    => s.statusInProgress,
+      DossierStatut.approuve    => s.statusApproved,
+      DossierStatut.proposition => s.statusProposition,
+      DossierStatut.en_attente  => s.statusPending,
     };
   }
 
@@ -493,6 +579,188 @@ class _PendingBanner extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Specialist proposal banner (PROPOSITION) ─────────────────────────────────
+
+class _PropositionBanner extends StatelessWidget {
+  const _PropositionBanner({
+    required this.nomSpecialiste,
+    required this.roleSpecialiste,
+    required this.submitting,
+    required this.onAccept,
+    required this.onRefuse,
+  });
+  final String? nomSpecialiste;
+  final String? roleSpecialiste;
+  final bool submitting;
+  final VoidCallback onAccept;
+  final VoidCallback onRefuse;
+
+  String _localizedRole(BuildContext context) {
+    switch ((roleSpecialiste ?? '').toUpperCase()) {
+      case 'JURISTE':     return 'Juriste';
+      case 'PSYCHOLOGUE': return 'Psychologue';
+      case 'ONG':         return 'ONG';
+      default:            return 'Spécialiste';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = AppStrings.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.orLight, AppColors.orPale.withAlpha(80)],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.or.withAlpha(140)),
+        boxShadow: const [
+          BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.orDark.withAlpha(30),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.person_search_rounded, color: AppColors.orDark, size: 24),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      s.propositionTitle,
+                      style: const TextStyle(
+                        fontFamily: 'GoogleSans', fontSize: 16,
+                        fontWeight: FontWeight.w700, color: AppColors.orDark,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      s.propositionSubtitle,
+                      style: const TextStyle(
+                        fontFamily: 'GoogleSans', fontSize: 12,
+                        color: AppColors.grisMid,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (nomSpecialiste != null)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.blanc,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0x14000000)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40, height: 40,
+                    decoration: const BoxDecoration(
+                      color: AppColors.bleuMid,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        nomSpecialiste!.trim().split(' ').take(2)
+                            .map((p) => p.isNotEmpty ? p[0] : '').join().toUpperCase(),
+                        style: const TextStyle(
+                          fontFamily: 'GoogleSans', fontSize: 15,
+                          fontWeight: FontWeight.w700, color: AppColors.blanc,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(nomSpecialiste!,
+                            style: const TextStyle(
+                              fontFamily: 'GoogleSans', fontSize: 15,
+                              fontWeight: FontWeight.w700, color: AppColors.bleuNuit,
+                            )),
+                        Text(_localizedRole(context),
+                            style: const TextStyle(
+                              fontFamily: 'GoogleSans', fontSize: 12,
+                              color: AppColors.grisMid,
+                            )),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: submitting ? null : onRefuse,
+                  icon: const Icon(Icons.close_rounded, size: 18),
+                  label: Text(s.detailBtnRefuse),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.rouge,
+                    side: BorderSide(color: AppColors.rouge.withAlpha(120)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    textStyle: const TextStyle(
+                      fontFamily: 'GoogleSans', fontSize: 14, fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 2,
+                child: ElevatedButton.icon(
+                  onPressed: submitting ? null : onAccept,
+                  icon: submitting
+                      ? const SizedBox(
+                          width: 16, height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2, color: AppColors.blanc,
+                          ),
+                        )
+                      : const Icon(Icons.check_rounded, size: 18),
+                  label: Text(s.propositionBtnAccept),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.orDark,
+                    foregroundColor: AppColors.blanc,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    textStyle: const TextStyle(
+                      fontFamily: 'GoogleSans', fontSize: 14, fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

@@ -1,4 +1,4 @@
-enum DossierStatut { en_attente, approuve, en_cours, urgent, resolu, rejete }
+enum DossierStatut { en_attente, proposition, approuve, en_cours, urgent, resolu, rejete }
 
 class DossierEntity {
   const DossierEntity({
@@ -15,6 +15,8 @@ class DossierEntity {
     this.region,
     this.aResolutionProposee = false,
     this.nomResolutionProposeur,
+    this.nomSpecialisteProposee,
+    this.roleSpecialisteProposee,
   });
 
   final int id;
@@ -30,8 +32,13 @@ class DossierEntity {
   final String? region;
   final bool aResolutionProposee;
   final String? nomResolutionProposeur;
+  final String? nomSpecialisteProposee;
+  final String? roleSpecialisteProposee;
 
-  bool get isDemande  => statut == DossierStatut.en_attente || statut == DossierStatut.approuve;
+  bool get isDemande  =>
+      statut == DossierStatut.en_attente ||
+      statut == DossierStatut.proposition ||
+      statut == DossierStatut.approuve;
   bool get isAssigned => specialisteNom != null;
 
   // Builds from GET /demandes/ item.
@@ -47,7 +54,7 @@ class DossierEntity {
         'REJETE'      => DossierStatut.rejete,
         'APPROUVE'    => DossierStatut.approuve,
         'EN_COURS'    => DossierStatut.en_cours,
-        'PROPOSITION' => DossierStatut.en_attente,
+        'PROPOSITION' => DossierStatut.proposition,
         _             => DossierStatut.en_attente,
       };
     }
@@ -61,6 +68,8 @@ class DossierEntity {
       statut:       statut,
       dateCreation: DateTime.tryParse(json['date_creation'] as String? ?? '') ?? DateTime.now(),
       dateMaj:      DateTime.tryParse(json['date_modification'] as String? ?? '') ?? DateTime.now(),
+      nomSpecialisteProposee:  json['nom_specialiste_propose'] as String?,
+      roleSpecialisteProposee: json['role_specialiste_propose'] as String?,
     );
   }
 

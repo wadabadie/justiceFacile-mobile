@@ -52,6 +52,7 @@ class AppStrings {
     required this.dossiersEmpty, required this.dossiersEmptyDesc,
     required this.statusUrgent, required this.statusInProgress,
     required this.statusResolved, required this.statusPending, required this.statusRejected, required this.statusApproved,
+    required this.statusProposition,
     required this.specialistAssigned,
     // ── New Dossier ───────────────────────────────────────────────────────────
     required this.newDossierTitle,
@@ -156,6 +157,10 @@ class AppStrings {
     required this.detailResolutionAccepted, required this.detailResolutionRefused,
     required this.detailResolutionError, required this.detailConfirmRefuseTitle,
     required this.detailConfirmRefuseMsg,
+    required this.propositionTitle, required this.propositionSubtitle,
+    required this.propositionBtnAccept, required this.propositionAccepted,
+    required this.propositionRefused, required this.propositionError,
+    required this.propositionConfirmRefuseTitle, required this.propositionConfirmRefuseMsg,
     // ── Politique ─────────────────────────────────────────────────────────────
     required this.politiqueTitle, required this.politiqueLastUpdateLabel,
     required this.politiqueContactTitle, required this.politiqueContactDelay,
@@ -247,6 +252,7 @@ class AppStrings {
   final String demandeAwaitAssignment, demandeBtnFollow, dossierBtnView;
   final String dossiersEmpty, dossiersEmptyDesc;
   final String statusUrgent, statusInProgress, statusResolved, statusPending, statusRejected, statusApproved;
+  final String statusProposition;
   final String specialistAssigned;
   // ── New Dossier ──────────────────────────────────────────────────────────────
   final String newDossierTitle, ndStep1, ndStep2, ndStep3;
@@ -330,6 +336,9 @@ class AppStrings {
   final String detailBtnAccept, detailBtnRefuse;
   final String detailResolutionAccepted, detailResolutionRefused, detailResolutionError;
   final String detailConfirmRefuseTitle, detailConfirmRefuseMsg;
+  final String propositionTitle, propositionSubtitle, propositionBtnAccept;
+  final String propositionAccepted, propositionRefused, propositionError;
+  final String propositionConfirmRefuseTitle, propositionConfirmRefuseMsg;
   // ── Politique ────────────────────────────────────────────────────────────────
   final String politiqueTitle, politiqueLastUpdateLabel;
   final String politiqueContactTitle, politiqueContactDelay;
@@ -475,6 +484,7 @@ class AppStrings {
     dossiersEmpty: 'Aucun dossier', dossiersEmptyDesc: 'Soumettez votre première demande d\'assistance juridique.',
     statusUrgent: 'Urgent', statusInProgress: 'En cours',
     statusResolved: 'Résolu', statusPending: 'En attente', statusRejected: 'Rejeté', statusApproved: 'Approuvée',
+    statusProposition: 'Spécialiste proposé',
     specialistAssigned: 'Spécialiste assigné',
 
     newDossierTitle: 'Nouvelle demande',
@@ -637,6 +647,14 @@ ndPrivacy: 'Vos informations sont confidentielles et ne seront partagées qu\'av
     detailResolutionError: 'Impossible de confirmer pour le moment.',
     detailConfirmRefuseTitle: 'Refuser la clôture ?',
     detailConfirmRefuseMsg: 'Le dossier restera actif et votre spécialiste continuera de vous accompagner.',
+    propositionTitle: 'Un spécialiste vous a été proposé',
+    propositionSubtitle: 'Confirmez pour créer votre dossier',
+    propositionBtnAccept: 'Accepter la proposition',
+    propositionAccepted: 'Spécialiste accepté. Votre dossier est créé.',
+    propositionRefused: 'Proposition refusée. Un autre spécialiste vous sera proposé.',
+    propositionError: 'Impossible de confirmer pour le moment.',
+    propositionConfirmRefuseTitle: 'Refuser ce spécialiste ?',
+    propositionConfirmRefuseMsg: 'Votre demande retournera en attente et un autre spécialiste pourra se proposer.',
 
     politiqueTitle: 'Politique de confidentialité',
     politiqueLastUpdateLabel: 'Dernière mise à jour :',
@@ -789,6 +807,7 @@ ndPrivacy: 'Vos informations sont confidentielles et ne seront partagées qu\'av
     dossiersEmpty: 'No files', dossiersEmptyDesc: 'Submit your first legal assistance request.',
     statusUrgent: 'Urgent', statusInProgress: 'In progress',
     statusResolved: 'Resolved', statusPending: 'Pending', statusRejected: 'Rejected', statusApproved: 'Approved',
+    statusProposition: 'Specialist proposed',
     specialistAssigned: 'Specialist assigned',
 
     newDossierTitle: 'New request',
@@ -951,6 +970,14 @@ ndPrivacy: 'Your information is confidential and will only be shared with the sp
     detailResolutionError: 'Unable to confirm at the moment.',
     detailConfirmRefuseTitle: 'Refuse the closure?',
     detailConfirmRefuseMsg: 'The file will stay active and your specialist will continue to support you.',
+    propositionTitle: 'A specialist has been proposed',
+    propositionSubtitle: 'Confirm to create your file',
+    propositionBtnAccept: 'Accept proposal',
+    propositionAccepted: 'Specialist accepted. Your file has been created.',
+    propositionRefused: 'Proposal refused. Another specialist may propose themselves.',
+    propositionError: 'Unable to confirm at the moment.',
+    propositionConfirmRefuseTitle: 'Refuse this specialist?',
+    propositionConfirmRefuseMsg: 'Your request will go back to pending and another specialist may propose themselves.',
 
     politiqueTitle: 'Privacy Policy',
     politiqueLastUpdateLabel: 'Last updated:',

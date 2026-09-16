@@ -76,7 +76,9 @@ class _DossiersScreenState extends State<DossiersScreen> {
 
   bool _matchesFilter(DossierEntity d) => switch (_filtre) {
     _ViewFilter.all      => true,
-    _ViewFilter.demandes => d.statut == DossierStatut.en_attente || d.statut == DossierStatut.approuve,
+    _ViewFilter.demandes => d.statut == DossierStatut.en_attente ||
+                            d.statut == DossierStatut.proposition ||
+                            d.statut == DossierStatut.approuve,
     _ViewFilter.enCours  => d.statut == DossierStatut.en_cours,
     _ViewFilter.urgent   => d.statut == DossierStatut.urgent,
     _ViewFilter.resolu   => d.statut == DossierStatut.resolu,
@@ -594,39 +596,47 @@ class _DemandeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = AppStrings.of(context);
+    final isProposition = demande.statut == DossierStatut.proposition;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: AppColors.blanc,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0x1A000000)),
+        border: Border.all(
+          color: isProposition ? AppColors.or.withAlpha(140) : const Color(0x1A000000),
+          width: isProposition ? 2 : 1,
+        ),
         boxShadow: const [
           BoxShadow(color: Color(0x07000000), blurRadius: 8, offset: Offset(0, 2)),
         ],
       ),
       child: Column(
         children: [
-          // Pending banner at the top
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 7),
-            decoration: const BoxDecoration(
-              color: Color(0xFFF5F5F5),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+            decoration: BoxDecoration(
+              color: isProposition ? AppColors.orLight : const Color(0xFFF5F5F5),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.hourglass_top_rounded,
-                    size: 14, color: AppColors.grisMid),
+                Icon(
+                  isProposition ? Icons.person_search_rounded : Icons.hourglass_top_rounded,
+                  size: 14,
+                  color: isProposition ? AppColors.orDark : AppColors.grisMid,
+                ),
                 const SizedBox(width: 6),
-                Text(s.statusPending,
-                    style: const TextStyle(
-                      fontFamily: 'GoogleSans',
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.grisMid,
-                    )),
+                Text(
+                  isProposition ? s.statusProposition : s.statusPending,
+                  style: TextStyle(
+                    fontFamily: 'GoogleSans',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: isProposition ? AppColors.orDark : AppColors.grisMid,
+                  ),
+                ),
               ],
             ),
           ),
@@ -679,21 +689,29 @@ class _DemandeCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8F8F8),
+                    color: isProposition ? AppColors.orLight : const Color(0xFFF8F8F8),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0x0A000000)),
+                    border: Border.all(
+                      color: isProposition ? AppColors.or.withAlpha(80) : const Color(0x0A000000),
+                    ),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.info_outline_rounded,
-                          size: 16, color: AppColors.grisLight),
+                      Icon(
+                        isProposition ? Icons.priority_high_rounded : Icons.info_outline_rounded,
+                        size: 16,
+                        color: isProposition ? AppColors.orDark : AppColors.grisLight,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          s.demandeAwaitAssignment,
+                          isProposition
+                              ? s.propositionSubtitle
+                              : s.demandeAwaitAssignment,
                           style: AppTextStyles.bodySm.copyWith(
                             fontSize: 13,
-                            color: AppColors.grisMid,
+                            fontWeight: isProposition ? FontWeight.w600 : FontWeight.normal,
+                            color: isProposition ? AppColors.orDark : AppColors.grisMid,
                             height: 1.4,
                           ),
                         ),
@@ -705,23 +723,41 @@ class _DemandeCard extends StatelessWidget {
                 const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () => context.go('/dossier-detail', extra: demande),
-                    icon: const Icon(Icons.visibility_outlined, size: 16),
-                    label: Text(s.demandeBtnFollow),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.grisMid,
-                      side: const BorderSide(color: Color(0x33000000)),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      textStyle: const TextStyle(
-                        fontFamily: 'GoogleSans',
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
+                  child: isProposition
+                      ? ElevatedButton.icon(
+                          onPressed: () => context.go('/dossier-detail', extra: demande),
+                          icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+                          label: Text(s.propositionBtnAccept),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.orDark,
+                            foregroundColor: AppColors.blanc,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            textStyle: const TextStyle(
+                              fontFamily: 'GoogleSans',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        )
+                      : OutlinedButton.icon(
+                          onPressed: () => context.go('/dossier-detail', extra: demande),
+                          icon: const Icon(Icons.visibility_outlined, size: 16),
+                          label: Text(s.demandeBtnFollow),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.grisMid,
+                            side: const BorderSide(color: Color(0x33000000)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            textStyle: const TextStyle(
+                              fontFamily: 'GoogleSans',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
                 ),
               ],
             ),
@@ -895,12 +931,13 @@ class _StatusTag extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = AppStrings.of(context);
     final (label, color, bg) = switch (statut) {
-      DossierStatut.urgent     => (s.statusUrgent,    AppColors.rouge,    AppColors.rougeLight),
-      DossierStatut.en_cours   => (s.statusInProgress, AppColors.orDark,   AppColors.orLight),
-      DossierStatut.resolu     => (s.statusResolved,  AppColors.emeraude, AppColors.emeraudeLight),
-      DossierStatut.approuve   => (s.statusApproved,  AppColors.emeraude, AppColors.emeraudeLight),
-      DossierStatut.en_attente => (s.statusPending,   AppColors.grisMid,  const Color(0xFFF0F0F0)),
-      DossierStatut.rejete     => (s.statusRejected,  AppColors.rouge,    AppColors.rougeLight),
+      DossierStatut.urgent      => (s.statusUrgent,      AppColors.rouge,    AppColors.rougeLight),
+      DossierStatut.en_cours    => (s.statusInProgress,  AppColors.orDark,   AppColors.orLight),
+      DossierStatut.resolu      => (s.statusResolved,    AppColors.emeraude, AppColors.emeraudeLight),
+      DossierStatut.approuve    => (s.statusApproved,    AppColors.emeraude, AppColors.emeraudeLight),
+      DossierStatut.proposition => (s.statusProposition, AppColors.orDark,   AppColors.orLight),
+      DossierStatut.en_attente  => (s.statusPending,     AppColors.grisMid,  const Color(0xFFF0F0F0)),
+      DossierStatut.rejete      => (s.statusRejected,    AppColors.rouge,    AppColors.rougeLight),
     };
     return _Tag(label: label, color: color, bg: bg, bold: true);
   }
