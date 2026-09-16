@@ -16,15 +16,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _form = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   bool _loading = false;
-  bool _sent = false;
   String? _error;
 
   Future<void> _submit(AppStrings s) async {
     if (!_form.currentState!.validate()) return;
     setState(() { _loading = true; _error = null; });
     try {
-      await AuthRepositoryImpl().requestPasswordReset(_emailCtrl.text.trim());
-      if (mounted) setState(() => _sent = true);
+      final email = _emailCtrl.text.trim();
+      await AuthRepositoryImpl().requestPasswordReset(email);
+      if (!mounted) return;
+      // Backend returns the same 200 for both existing and unknown accounts
+      // (anti account-enumeration). We always navigate to the OTP screen —
+      // if the account doesn't exist, no email is sent and the OTP just
+      // won't be received.
+      context.go('/reset-password', extra: email);
     } catch (_) {
       if (mounted) setState(() => _error = s.forgotError);
     } finally {
@@ -71,7 +76,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 const SizedBox(height: 6),
                 Text(s.forgotSubtitle, style: AppTextStyles.bodySm),
                 const SizedBox(height: 28),
-                if (_sent) _SuccessCard(s: s) else _buildForm(s),
+                _buildForm(s),
               ],
             ),
           ),
@@ -127,69 +132,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _SuccessCard extends StatelessWidget {
-  const _SuccessCard({required this.s});
-  final AppStrings s;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: AppColors.emeraudeLight,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.emeraude.withAlpha(60)),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(Icons.mark_email_read_rounded, color: AppColors.emeraude, size: 28),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(s.forgotSuccessTitle,
-                        style: const TextStyle(
-                          fontFamily: 'GoogleSans', fontSize: 16,
-                          fontWeight: FontWeight.w700, color: AppColors.emeraude,
-                        )),
-                    const SizedBox(height: 6),
-                    Text(s.forgotSuccessDesc,
-                        style: const TextStyle(
-                          fontFamily: 'GoogleSans', fontSize: 13,
-                          color: AppColors.gris, height: 1.4,
-                        )),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 22),
-        GestureDetector(
-          onTap: () => context.go('/login'),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            decoration: BoxDecoration(
-              color: AppColors.blanc,
-              border: Border.all(color: AppColors.bleuNuit.withAlpha(80)),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Text(s.forgotSuccessBack,
-                textAlign: TextAlign.center,
-                style: AppTextStyles.btn.copyWith(color: AppColors.bleuNuit)),
-          ),
-        ),
-      ],
     );
   }
 }

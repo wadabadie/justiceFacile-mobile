@@ -23,6 +23,7 @@ import '../../features/messagerie/presentation/chat_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../features/temoignages/presentation/temoignages_screen.dart';
 import '../../features/rendez_vous/presentation/planning_screen.dart';
+import '../../features/rendez_vous/presentation/book_rdv_screen.dart';
 import '../../features/admin/presentation/admin_dashboard_screen.dart';
 import '../../features/admin/presentation/rapports_screen.dart';
 import '../../features/ong/presentation/activites_screen.dart';
@@ -63,11 +64,21 @@ abstract final class AppRouter {
         pageBuilder: (_, state) => _slidePage(state, const ForgotPasswordScreen()),
       ),
       GoRoute(
-        path: '/reset-password/:uid/:token',
+        path: '/rdv/book',
         pageBuilder: (_, state) {
-          final uid = state.pathParameters['uid'] ?? '';
-          final token = state.pathParameters['token'] ?? '';
-          return _slidePage(state, ResetPasswordScreen(uid: uid, token: token));
+          final data = state.extra as Map<String, dynamic>? ?? const {};
+          return _slidePage(state, BookRdvScreen(
+            dossierId:      data['dossierId'] as int,
+            canal:          data['canal'] as String,
+            specialisteNom: data['specialisteNom'] as String,
+          ));
+        },
+      ),
+      GoRoute(
+        path: '/reset-password',
+        pageBuilder: (_, state) {
+          final email = state.extra as String? ?? '';
+          return _slidePage(state, ResetPasswordScreen(email: email));
         },
       ),
       GoRoute(

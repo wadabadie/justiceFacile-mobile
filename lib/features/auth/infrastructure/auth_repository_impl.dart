@@ -154,17 +154,16 @@ final class AuthRepositoryImpl implements IAuthRepository {
     }
   }
 
-  // Confirms the reset with uid/token extracted from the deep link and the
-  // new password chosen by the user.
+  // Confirms the reset with the 6-digit OTP received by email + new password.
   Future<void> confirmPasswordReset({
-    required String uid,
-    required String token,
+    required String email,
+    required String code,
     required String newPassword,
   }) async {
     try {
       await _dio.post(ApiConstants.confirmerResetMdp, data: {
-        'uid': uid,
-        'token': token,
+        'email': email,
+        'code': code,
         'new_password': newPassword,
       });
     } on DioException catch (e) {
