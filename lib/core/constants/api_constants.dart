@@ -24,8 +24,8 @@ abstract final class ApiConstants {
   // ── Demandes ────────────────────────────────────────────────────────────────
   static const demandes                        = '$baseUrl/demandes/';
   static const demandesDisponibles             = '$baseUrl/demandes/disponibles/';
-  static String demandeProposer(int id)        => '$baseUrl/demandes/$id/proposer/';
-  static String demandeConfirmer(int id)       => '$baseUrl/demandes/$id/confirmer/';
+  static String demandeProposer(int id)        => '$baseUrl/specialiste/demandes/$id/proposer/';
+  static String demandeConfirmer(int id)       => '$baseUrl/citoyen/demandes/$id/confirmer/';
   static String demandePreuves(int id)         => '$baseUrl/demandes/$id/preuves/';
   static String preuveDelete(int id)           => '$baseUrl/preuves/$id/';
   static const adminEscalade                   = '$baseUrl/admin/executer-escalade/';
@@ -33,12 +33,12 @@ abstract final class ApiConstants {
   // ── Dossiers ────────────────────────────────────────────────────────────────
   static const dossiers                              = '$baseUrl/dossiers/';
   static String dossier(int id)                      => '$baseUrl/dossiers/$id/';
-  static String dossierCompteRendu(int id)           => '$baseUrl/dossiers/$id/comptes-rendus/';
-  static String dossierStatut(int id)                => '$baseUrl/dossiers/$id/statut/';
-  static String dossierProposerResolution(int id)    => '$baseUrl/dossiers/$id/proposer-resolution/';
-  static String dossierConfirmerResolution(int id)   => '$baseUrl/dossiers/$id/confirmer-resolution/';
-  static String dossierAnalyseIa(int id)             => '$baseUrl/dossiers/$id/analyse-ia/';
-  static String dossierRemplacerSpecialiste(int id)  => '$baseUrl/dossiers/$id/remplacer-specialiste/';
+  static String dossierCompteRendu(int id)           => '$baseUrl/specialiste/dossiers/$id/comptes-rendus/';
+  static String dossierStatut(int id)                => '$baseUrl/specialiste/dossiers/$id/statut/';
+  static String dossierProposerResolution(int id)    => '$baseUrl/specialiste/dossiers/$id/proposer-resolution/';
+  static String dossierConfirmerResolution(int id)   => '$baseUrl/citoyen/dossiers/$id/confirmer-resolution/';
+  static String dossierAnalyseIa(int id)             => '$baseUrl/specialiste/dossiers/$id/analyse-ia/';
+  static String dossierRemplacerSpecialiste(int id)  => '$baseUrl/admin/dossiers/$id/remplacer-specialiste/';
   static String dossierExportPdf(int id)             => '$baseUrl/dossiers/$id/export-pdf/';
 
   // ── Tchat sécurisé ──────────────────────────────────────────────────────────
@@ -57,10 +57,10 @@ abstract final class ApiConstants {
   static String adminCertifier(int id)       => '$baseUrl/admin/specialistes/$id/certifier/';
 
   // ── Ressources & FAQ ────────────────────────────────────────────────────────
-  static const ressources                  = '$baseUrl/ressources-juridiques/';
+  static const ressources                  = '$baseUrl/juriste/ressources-juridiques/';
   static String ressource(int id)          => '$baseUrl/ressources-juridiques/$id/';
   static String ressourceModerer(int id)   => '$baseUrl/ressources-juridiques/$id/moderer/';
-  static const faq                         = '$baseUrl/faq/';
+  static const faq                         = '$baseUrl/juriste/faq/';
   static String faqItem(int id)            => '$baseUrl/faq/$id/';
   static String faqModerer(int id)         => '$baseUrl/faq/$id/moderer/';
 
@@ -75,24 +75,24 @@ abstract final class ApiConstants {
   static const notificationsToutLire     = '$baseUrl/notifications/tout-lire/';
 
   // ── Rendez-vous ─────────────────────────────────────────────────────────────
-  static const mesDisponibilites                               = '$baseUrl/rendez-vous/mes-disponibilites/';
-  static String supprimerDispo(int id)                         => '$baseUrl/rendez-vous/mes-disponibilites/$id/';
+  static const mesDisponibilites                               = '$baseUrl/specialiste/rendez-vous/mes-disponibilites/';
+  static String supprimerDispo(int id)                         => '$baseUrl/specialiste/rendez-vous/mes-disponibilites/$id/';
   static String rdvDisponibilites(int dossierId, String canal) => '$baseUrl/dossiers/$dossierId/rendez-vous/disponibilites/$canal/';
   static String demanderRdv(int dossierId, String canal)       => '$baseUrl/dossiers/$dossierId/rendez-vous/$canal/';
-  static const monPlanning                                     = '$baseUrl/rendez-vous/mon-planning/';
-  static String validerRdv(int id)                             => '$baseUrl/rendez-vous/$id/valider/';
+  static const monPlanning                                     = '$baseUrl/specialiste/rendez-vous/mon-planning/';
+  static String validerRdv(int id)                             => '$baseUrl/specialiste/rendez-vous/$id/valider/';
   static String tokenVisio(int id)                             => '$baseUrl/rendez-vous/$id/token-visio/';
 
   // ── Module ONG & Activités terrain ─────────────────────────────────────────
   static const activites                     = '$baseUrl/activites/';
   static String activite(int id)             => '$baseUrl/activites/$id/';
   static const mesActivites                  = '$baseUrl/mes-activites/';
-  static String activiteInscription(int id)  => '$baseUrl/activites/$id/inscription/';
-  static String activiteAnnuler(int id)      => '$baseUrl/activites/$id/annuler/';
-  static const mesInscriptions               = '$baseUrl/mes-inscriptions/';
-  static String activiteParticipants(int id) => '$baseUrl/activites/$id/participants/';
-  static String inscriptionPresence(int id)  => '$baseUrl/inscriptions/$id/presence/';
-  static String activiteRapport(int id)      => '$baseUrl/activites/$id/rapport/';
+  static String activiteInscription(int id)  => '$baseUrl/citoyen/activites/$id/inscription/';
+  static String activiteAnnuler(int id)      => '$baseUrl/citoyen/activites/$id/annuler/';
+  static const mesInscriptions               = '$baseUrl/citoyens/mes-inscriptions/';
+  static String activiteParticipants(int id) => '$baseUrl/ong/activites/$id/participants/';
+  static String inscriptionPresence(int id)  => '$baseUrl/ong/inscriptions/$id/presence/';
+  static String activiteRapport(int id)      => '$baseUrl/ong/activites/$id/rapport/';
 
   // ── Témoignages anonymes ────────────────────────────────────────────────────
   static const temoignages                       = '$baseUrl/temoignages/';
