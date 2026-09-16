@@ -41,9 +41,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: _passCtrl.text,
         role: _role,
       );
-      if (mounted) context.go('/home');
-    } catch (_) {
-      setState(() => _error = s.errGeneric);
+      if (mounted) context.go('/verify-email', extra: email);
+    } catch (e) {
+      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _loading = false);
     }

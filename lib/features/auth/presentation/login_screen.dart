@@ -27,8 +27,17 @@ class _LoginScreenState extends State<LoginScreen> {
       await AuthRepositoryImpl().loginWithGoogle();
       if (mounted) context.go('/home');
     } catch (e) {
-      if (e.toString().contains('google_cancelled')) return;
-      setState(() => _error = s.errGeneric);
+      final msg = e.toString();
+      if (msg.contains('google_cancelled')) return;
+      // Show the real error temporarily to help diagnose the issue.
+      final display = msg.contains('google_no_token')
+          ? 'Token Google absent — vérifiez la config Google Cloud Console.'
+          : msg.contains('google_backend_')
+              ? 'Erreur backend : ${msg.replaceFirst('Exception: google_backend_', '')}'
+              : msg.contains('PlatformException')
+                  ? 'Erreur Google Sign-In : $msg'
+                  : s.errGeneric;
+      setState(() => _error = display);
     } finally {
       if (mounted) setState(() => _googleLoading = false);
     }
@@ -40,8 +49,9 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await AuthRepositoryImpl().login(_emailCtrl.text.trim(), _passCtrl.text);
       if (mounted) context.go('/home');
-    } catch (_) {
-      setState(() { _error = s.errCredentials; });
+    } catch (e) {
+      final msg = e.toString().replaceFirst('Exception: ', '');
+      setState(() => _error = msg == 'invalid_credentials' ? s.errCredentials : msg);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -80,6 +90,34 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     if (_error != null) ...[
                       _ErrorBanner(message: _error!),
+                      if (_error!.toLowerCase().contains('vérifi')) ...[
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: () => context.go(
+                            '/verify-email',
+                            extra: _emailCtrl.text.trim(),
+                          ),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: AppColors.bleuNuit,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.mark_email_read_outlined,
+                                    color: AppColors.blanc, size: 18),
+                                const SizedBox(width: 8),
+                                Text(s.goVerifyEmail,
+                                    style: AppTextStyles.labelSm.copyWith(
+                                        color: AppColors.blanc)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 16),
                     ],
 

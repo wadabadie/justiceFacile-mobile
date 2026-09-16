@@ -5,6 +5,9 @@ final class UserEntity {
     required this.lastName,
     required this.email,
     required this.role,
+    this.phone,
+    this.region,
+    this.deuxFaActif = false,
     this.accessToken,
     this.refreshToken,
   });
@@ -14,6 +17,9 @@ final class UserEntity {
   final String lastName;
   final String email;
   final String role;
+  final String? phone;
+  final String? region;
+  final bool deuxFaActif;
   final String? accessToken;
   final String? refreshToken;
 

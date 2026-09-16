@@ -4,6 +4,7 @@ import 'package:showcaseview/showcaseview.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../core/l10n/app_strings.dart';
+import '../../../core/services/notification_service.dart';
 import '../../../shared/widgets/app_bottom_nav.dart';
 import '../../auth/domain/entities/user_entity.dart';
 import '../../auth/infrastructure/auth_repository_impl.dart';
@@ -23,17 +24,24 @@ class _HomeScreenState extends State<HomeScreen> {
   final _tipMessages = GlobalKey();
 
   UserEntity? _user;
+  int _unreadCount = 0;
 
   @override
   void initState() {
     super.initState();
     _loadUser();
+    _loadUnreadCount();
     _maybeShowTips();
   }
 
   Future<void> _loadUser() async {
     final user = await AuthRepositoryImpl().restoreSession();
     if (mounted) setState(() => _user = user);
+  }
+
+  Future<void> _loadUnreadCount() async {
+    final count = await NotificationService.instance.fetchUnreadCount();
+    if (mounted) setState(() => _unreadCount = count);
   }
 
   Future<void> _maybeShowTips() async {
@@ -56,7 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: AppColors.fond,
       body: Column(
         children: [
-          _HomeHeader(s: s, tipSearch: _tipSearch, user: _user),
+          _HomeHeader(s: s, tipSearch: _tipSearch, user: _user, unreadCount: _unreadCount),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(18, 36, 18, 100),
@@ -104,10 +112,11 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _HomeHeader extends StatelessWidget {
-  const _HomeHeader({required this.s, required this.tipSearch, required this.user});
+  const _HomeHeader({required this.s, required this.tipSearch, required this.user, required this.unreadCount});
   final AppStrings s;
   final GlobalKey tipSearch;
   final UserEntity? user;
+  final int unreadCount;
 
   String _roleLabel(String role, AppStrings s) => switch (role) {
     'juriste'      => s.roleJuriste,
@@ -165,28 +174,44 @@ class _HomeHeader extends StatelessWidget {
                     ]),
                   ),
                   const Spacer(),
-                  Stack(
-                    children: [
-                      Container(
-                        width: 38, height: 38,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withAlpha(25),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.notifications_outlined, color: AppColors.blanc, size: 20),
-                      ),
-                      Positioned(
-                        top: 4, right: 4,
-                        child: Container(
-                          width: 9, height: 9,
+                  GestureDetector(
+                    onTap: () => context.go('/notifications'),
+                    child: Stack(
+                      children: [
+                        Container(
+                          width: 38, height: 38,
                           decoration: BoxDecoration(
-                            color: AppColors.rouge,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: AppColors.bleuNuit, width: 1.5),
+                            color: Colors.white.withAlpha(25),
+                            borderRadius: BorderRadius.circular(10),
                           ),
+                          child: const Icon(Icons.notifications_outlined, color: AppColors.blanc, size: 20),
                         ),
-                      ),
-                    ],
+                        if (unreadCount > 0)
+                          Positioned(
+                            top: 3, right: 3,
+                            child: Container(
+                              padding: unreadCount > 9
+                                  ? const EdgeInsets.symmetric(horizontal: 4, vertical: 1)
+                                  : const EdgeInsets.all(3),
+                              decoration: BoxDecoration(
+                                color: AppColors.rouge,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: AppColors.bleuNuit, width: 1.5),
+                              ),
+                              child: Text(
+                                unreadCount > 99 ? '99+' : '$unreadCount',
+                                style: const TextStyle(
+                                  fontFamily: 'GoogleSans',
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.blanc,
+                                  height: 1,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -235,24 +260,27 @@ class _HomeHeader extends StatelessWidget {
                   Showcase(
                     key: tipSearch,
                     description: s.tipSearch,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withAlpha(30),
-                        border: Border.all(color: Colors.white.withAlpha(46)),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.search, color: Color(0x80FFFFFF), size: 20),
-                          const SizedBox(width: 10),
-                          Text(s.homeSearch,
-                              style: const TextStyle(
-                                fontFamily: 'GoogleSans',
-                                fontSize: 18,
-                                color: Color(0x80FFFFFF),
-                              )),
-                        ],
+                    child: GestureDetector(
+                      onTap: () => context.go('/search'),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha(30),
+                          border: Border.all(color: Colors.white.withAlpha(46)),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.search, color: Color(0x80FFFFFF), size: 20),
+                            const SizedBox(width: 10),
+                            Text(s.homeSearch,
+                                style: const TextStyle(
+                                  fontFamily: 'GoogleSans',
+                                  fontSize: 18,
+                                  color: Color(0x80FFFFFF),
+                                )),
+                          ],
+                        ),
                       ),
                     ),
                   ),

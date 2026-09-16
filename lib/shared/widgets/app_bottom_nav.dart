@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:showcaseview/showcaseview.dart';
 import '../../core/constants/app_colors.dart';
 
-enum NavTab { home, dossiers, ia, messages, profil }
+enum NavTab { home, dossiers, ia, messages, profil, adminDash, adminRapports }
 
 class AppBottomNav extends StatelessWidget {
   const AppBottomNav({
@@ -15,13 +15,26 @@ class AppBottomNav extends StatelessWidget {
   final NavTab current;
   final GlobalKey? messagesTipKey;
 
-  static const _items = [
+  static const _citizenItems = [
     _NavItem(tab: NavTab.home,     icon: Icons.home_rounded,        route: '/home',       label: 'Accueil'),
     _NavItem(tab: NavTab.dossiers, icon: Icons.folder_copy_rounded,  route: '/dossiers',   label: 'Dossiers'),
     _NavItem(tab: NavTab.ia,       icon: Icons.auto_awesome_rounded, route: '/ia',         label: 'IA'),
     _NavItem(tab: NavTab.messages, icon: Icons.forum_rounded,        route: '/messagerie', label: 'Messages'),
     _NavItem(tab: NavTab.profil,   icon: Icons.person_rounded,       route: '/profil',     label: 'Profil'),
   ];
+
+  static const _adminItems = [
+    _NavItem(tab: NavTab.adminDash,     icon: Icons.dashboard_rounded,     route: '/admin',    label: 'Dashboard'),
+    _NavItem(tab: NavTab.dossiers,      icon: Icons.folder_copy_rounded,    route: '/dossiers', label: 'Dossiers'),
+    _NavItem(tab: NavTab.messages,      icon: Icons.forum_rounded,          route: '/messagerie', label: 'Messages'),
+    _NavItem(tab: NavTab.adminRapports, icon: Icons.bar_chart_rounded,      route: '/rapports', label: 'Rapports'),
+    _NavItem(tab: NavTab.profil,        icon: Icons.person_rounded,         route: '/profil',   label: 'Profil'),
+  ];
+
+  List<_NavItem> get _items {
+    const adminTabs = {NavTab.adminDash, NavTab.adminRapports};
+    return (adminTabs.contains(current)) ? _adminItems : _citizenItems;
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -1,101 +1,66 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
+import '../../../core/constants/api_constants.dart';
+import '../../../core/l10n/app_strings.dart';
+import '../../../core/services/api_service.dart';
 
 // ─── Modèle ───────────────────────────────────────────────────────────────────
 
-enum _Role { juriste, psychologue, ong }
+enum _Role { juriste, psychologue, ong, autre }
 
 class _Specialist {
   const _Specialist({
+    required this.id,
     required this.nom,
     required this.role,
-    required this.specialite,
-    required this.region,
-    required this.disponible,
-    this.experience,
-    this.dossiers = 0,
+    required this.roleDisplay,
+    this.telephone,
   });
-  final String nom, specialite, region;
-  final _Role role;
-  final bool disponible;
-  final String? experience;
-  final int dossiers;
-}
 
-const _specialists = [
-  _Specialist(
-    nom: 'Me. Jean-Baptiste Fotso',
-    role: _Role.juriste,
-    specialite: 'Droit du travail',
-    region: 'Yaoundé',
-    disponible: true,
-    experience: '12 ans',
-    dossiers: 48,
-  ),
-  _Specialist(
-    nom: 'Me. Rose Ateba',
-    role: _Role.juriste,
-    specialite: 'Droit de la famille',
-    region: 'Douala',
-    disponible: false,
-    experience: '8 ans',
-    dossiers: 31,
-  ),
-  _Specialist(
-    nom: 'Dr. Pauline Ngo',
-    role: _Role.psychologue,
-    specialite: 'Accompagnement VBG',
-    region: 'Bafoussam',
-    disponible: true,
-    experience: '10 ans',
-    dossiers: 62,
-  ),
-  _Specialist(
-    nom: 'Me. André Mbarga',
-    role: _Role.juriste,
-    specialite: 'Droit pénal',
-    region: 'Yaoundé',
-    disponible: true,
-    experience: '15 ans',
-    dossiers: 89,
-  ),
-  _Specialist(
-    nom: 'CIPCRE Cameroun',
-    role: _Role.ong,
-    specialite: 'Protection VBG',
-    region: 'Bafoussam',
-    disponible: true,
-    dossiers: 204,
-  ),
-  _Specialist(
-    nom: 'Me. Clarisse Owona',
-    role: _Role.juriste,
-    specialite: 'Droit civil',
-    region: 'Douala',
-    disponible: false,
-    experience: '6 ans',
-    dossiers: 27,
-  ),
-  _Specialist(
-    nom: 'Dr. Simon Tchuente',
-    role: _Role.psychologue,
-    specialite: 'Trauma & Résilience',
-    region: 'Yaoundé',
-    disponible: true,
-    experience: '9 ans',
-    dossiers: 43,
-  ),
-  _Specialist(
-    nom: 'Association ALVF',
-    role: _Role.ong,
-    specialite: 'Lutte contre les VBG',
-    region: 'Douala',
-    disponible: true,
-    dossiers: 156,
-  ),
-];
+  final int id;
+  final String nom;
+  final _Role role;
+  final String roleDisplay;
+  final String? telephone;
+
+  factory _Specialist.fromJson(Map<String, dynamic> json) {
+    final roleRaw = (json['role_display'] as String? ?? '').toLowerCase();
+    _Role role;
+    if (roleRaw.contains('juriste')) {
+      role = _Role.juriste;
+    } else if (roleRaw.contains('psycho')) {
+      role = _Role.psychologue;
+    } else if (roleRaw.contains('ong')) {
+      role = _Role.ong;
+    } else {
+      role = _Role.autre;
+    }
+
+    final firstName  = json['first_name'] as String? ?? '';
+    final lastName   = json['last_name']  as String? ?? '';
+    final nomStruct  = json['nom_structure'] as String?;
+
+    String nom;
+    if (role == _Role.ong && nomStruct != null && nomStruct.isNotEmpty) {
+      nom = nomStruct;
+    } else if (role == _Role.psychologue) {
+      nom = 'Dr. $firstName $lastName'.trim();
+    } else {
+      nom = 'Me. $firstName $lastName'.trim();
+    }
+
+    return _Specialist(
+      id:          json['id'] as int,
+      nom:         nom,
+      role:        role,
+      roleDisplay: json['role_display'] as String? ?? '',
+      telephone:   json['telephone'] as String?,
+    );
+  }
+}
 
 // ─── Couleurs par rôle ────────────────────────────────────────────────────────
 
@@ -103,24 +68,28 @@ Color _roleColor(_Role r) => switch (r) {
   _Role.juriste     => AppColors.bleuMid,
   _Role.psychologue => AppColors.emeraude,
   _Role.ong         => AppColors.or,
+  _Role.autre       => AppColors.grisMid,
 };
 
 Color _roleBg(_Role r) => switch (r) {
   _Role.juriste     => const Color(0xFFE8F0FE),
   _Role.psychologue => AppColors.emeraudeLight,
   _Role.ong         => AppColors.orLight,
-};
-
-String _roleLabel(_Role r) => switch (r) {
-  _Role.juriste     => 'Juriste',
-  _Role.psychologue => 'Psychologue',
-  _Role.ong         => 'ONG',
+  _Role.autre       => const Color(0xFFF0F0F0),
 };
 
 IconData _roleIcon(_Role r) => switch (r) {
   _Role.juriste     => Icons.gavel_rounded,
   _Role.psychologue => Icons.psychology_rounded,
   _Role.ong         => Icons.people_rounded,
+  _Role.autre       => Icons.person_rounded,
+};
+
+String _roleLabel(_Role r) => switch (r) {
+  _Role.juriste     => 'Juriste',
+  _Role.psychologue => 'Psychologue',
+  _Role.ong         => 'ONG',
+  _Role.autre       => 'Expert',
 };
 
 // ─── Écran ────────────────────────────────────────────────────────────────────
@@ -133,26 +102,185 @@ class JuristesScreen extends StatefulWidget {
 }
 
 class _JuristesScreenState extends State<JuristesScreen> {
+  List<_Specialist> _specialists = [];
+  bool _loading = true;
+  String? _error;
+
   String _query = '';
   _Role? _roleFilter;
-  bool _dispOnlyFilter = false;
   final _searchCtrl = TextEditingController();
+
+  // Id du spécialiste en cours de chargement (pour afficher le spinner sur sa carte).
+  int? _contactingId;
 
   List<_Specialist> get _filtered => _specialists.where((s) {
     final q = _query.toLowerCase();
     final matchesQ = q.isEmpty ||
         s.nom.toLowerCase().contains(q) ||
-        s.specialite.toLowerCase().contains(q) ||
-        s.region.toLowerCase().contains(q);
+        s.roleDisplay.toLowerCase().contains(q) ||
+        (s.telephone?.contains(q) ?? false);
     final matchesRole = _roleFilter == null || s.role == _roleFilter;
-    final matchesDisp = !_dispOnlyFilter || s.disponible;
-    return matchesQ && matchesRole && matchesDisp;
+    return matchesQ && matchesRole;
   }).toList();
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final res = await ApiService.instance.get(ApiConstants.specialistes);
+      final list = res.data as List<dynamic>;
+      if (!mounted) return;
+      setState(() {
+        _specialists = list
+            .map((e) => _Specialist.fromJson(e as Map<String, dynamic>))
+            .toList();
+        _loading = false;
+      });
+    } on DioException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = ApiService.extractError(e.response?.data);
+        _loading = false;
+      });
+    }
+  }
 
   @override
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();
+  }
+
+  // Cherche un dossier actif avec ce spécialiste, et ouvre le chat si trouvé.
+  Future<void> _onContact(_Specialist specialist) async {
+    setState(() => _contactingId = specialist.id);
+    try {
+      final res = await ApiService.instance.get(ApiConstants.dossiers);
+      final dossiers = res.data as List<dynamic>;
+
+      for (final d in dossiers) {
+        final canal = _matchCanal(d as Map<String, dynamic>, specialist);
+        if (canal != null) {
+          if (!mounted) return;
+          context.go('/chat', extra: {
+            'dossierId':   d['id'] as int,
+            'canal':       canal,
+            'contactName': specialist.nom,
+          });
+          return;
+        }
+      }
+
+      // Aucun dossier avec ce spécialiste.
+      if (!mounted) return;
+      _showNoDossierSheet(specialist);
+    } catch (_) {
+      if (!mounted) return;
+      // En cas d'erreur réseau, redirige vers la messagerie.
+      context.go('/messagerie');
+    } finally {
+      if (mounted) setState(() => _contactingId = null);
+    }
+  }
+
+  // Retourne le canal si ce dossier est assigné à ce spécialiste, sinon null.
+  String? _matchCanal(Map<String, dynamic> dossier, _Specialist specialist) {
+    final nomJuriste = dossier['nom_juriste']     as String? ?? '';
+    final nomPsy     = dossier['nom_psychologue'] as String? ?? '';
+    final nomOng     = dossier['nom_ong']         as String? ?? '';
+
+    if (specialist.role == _Role.juriste     && nomJuriste == specialist.nom) return 'juriste';
+    if (specialist.role == _Role.psychologue && nomPsy     == specialist.nom) return 'psychologue';
+    if (specialist.role == _Role.ong         && nomOng     == specialist.nom) return 'ong';
+    return null;
+  }
+
+  void _showNoDossierSheet(_Specialist specialist) {
+    final s = AppStrings.of(context);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.grisLight,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 22),
+            Container(
+              width: 62, height: 62,
+              decoration: BoxDecoration(
+                color: AppColors.bleuNuit.withAlpha(18),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.forum_outlined, size: 30, color: AppColors.bleuNuit),
+            ),
+            const SizedBox(height: 14),
+            Text('${s.juristesContact} ${specialist.nom}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    fontFamily: 'GoogleSans', fontSize: 18,
+                    fontWeight: FontWeight.w700, color: AppColors.bleuNuit)),
+            const SizedBox(height: 10),
+            Text(
+              s.juristesNoDossierMsg,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  fontFamily: 'GoogleSans', fontSize: 14,
+                  color: AppColors.grisMid, height: 1.6),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () { Navigator.pop(ctx); context.go('/new-dossier'); },
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: Text(s.juristesNoDossierCreate),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.bleuNuit,
+                  foregroundColor: AppColors.blanc,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  textStyle: const TextStyle(
+                      fontFamily: 'GoogleSans', fontSize: 15, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () { Navigator.pop(ctx); context.go('/dossiers'); },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.bleuNuit,
+                  side: const BorderSide(color: AppColors.bleuNuit),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  textStyle: const TextStyle(
+                      fontFamily: 'GoogleSans', fontSize: 15, fontWeight: FontWeight.w700),
+                ),
+                child: Text(s.juristesNoDossierView),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -166,25 +294,58 @@ class _JuristesScreenState extends State<JuristesScreen> {
             onSearch: (v) => setState(() => _query = v),
             onBack: () => context.go('/home'),
           ),
-          _FiltersBar(
-            roleFilter: _roleFilter,
-            dispOnly: _dispOnlyFilter,
-            onRole: (r) => setState(() => _roleFilter = _roleFilter == r ? null : r),
-            onDisp: () => setState(() => _dispOnlyFilter = !_dispOnlyFilter),
-          ),
-          Expanded(
-            child: _filtered.isEmpty
-                ? const _EmptyState()
-                : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(18, 16, 18, 40),
-                    itemCount: _filtered.length,
-                    itemBuilder: (_, i) => _SpecialistCard(
-                      specialist: _filtered[i],
-                      onContact: () => context.go('/messagerie'),
-                    ),
-                  ),
-          ),
+          if (!_loading && _error == null)
+            _FiltersBar(
+              roleFilter: _roleFilter,
+              onRole: (r) => setState(() => _roleFilter = _roleFilter == r ? null : r),
+            ),
+          Expanded(child: _buildBody()),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    final s = AppStrings.of(context);
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator(color: AppColors.bleuNuit));
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.wifi_off_rounded, size: 48, color: AppColors.grisLight),
+            const SizedBox(height: 16),
+            Text(_error!, textAlign: TextAlign.center,
+                style: AppTextStyles.bodySm.copyWith(color: AppColors.grisMid)),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _load,
+              icon: const Icon(Icons.refresh_rounded),
+              label: Text(s.btnRetry),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.bleuNuit, foregroundColor: AppColors.blanc),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_filtered.isEmpty) return const _EmptyState();
+
+    return RefreshIndicator(
+      color: AppColors.bleuNuit,
+      onRefresh: _load,
+      child: ListView.builder(
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 40),
+        itemCount: _filtered.length,
+        itemBuilder: (_, i) => _SpecialistCard(
+          specialist:   _filtered[i],
+          isContacting: _contactingId == _filtered[i].id,
+          onContact:    () => _onContact(_filtered[i]),
+        ),
       ),
     );
   }
@@ -204,6 +365,7 @@ class _JuristesHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppStrings.of(context);
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -227,7 +389,8 @@ class _JuristesHeader extends StatelessWidget {
                     color: Colors.white.withAlpha(30),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.blanc, size: 18),
+                  child: const Icon(Icons.arrow_back_ios_new_rounded,
+                      color: AppColors.blanc, size: 18),
                 ),
               ),
               const SizedBox(height: 16),
@@ -242,14 +405,15 @@ class _JuristesHeader extends StatelessWidget {
                     child: const Icon(Icons.gavel_rounded, color: AppColors.blanc, size: 26),
                   ),
                   const SizedBox(width: 14),
-                  const Column(
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('RÉSEAU DE SPÉCIALISTES',
-                          style: TextStyle(fontFamily: 'GoogleSans', fontSize: 11,
-                              fontWeight: FontWeight.w700, color: Color(0xA0FFFFFF), letterSpacing: 2.5)),
-                      Text('Juristes & Experts',
-                          style: TextStyle(fontFamily: 'GoogleSans', fontSize: 24,
+                      Text(s.juristesSubtitle,
+                          style: const TextStyle(fontFamily: 'GoogleSans', fontSize: 11,
+                              fontWeight: FontWeight.w700, color: Color(0xA0FFFFFF),
+                              letterSpacing: 2.5)),
+                      Text(s.juristesTitle,
+                          style: const TextStyle(fontFamily: 'GoogleSans', fontSize: 24,
                               fontWeight: FontWeight.w700, color: AppColors.blanc)),
                     ],
                   ),
@@ -257,27 +421,29 @@ class _JuristesHeader extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(22),
-                  border: Border.all(color: Colors.white.withAlpha(40)),
-                  borderRadius: BorderRadius.circular(14),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.search_rounded, color: Color(0x80FFFFFF), size: 20),
+                    const Icon(Icons.search_rounded, color: AppColors.grisMid, size: 20),
                     const SizedBox(width: 10),
                     Expanded(
                       child: TextField(
                         controller: searchCtrl,
                         onChanged: onSearch,
-                        style: const TextStyle(fontFamily: 'GoogleSans', fontSize: 16, color: AppColors.blanc),
-                        decoration: const InputDecoration(
-                          hintText: 'Nom, spécialité, ville...',
-                          hintStyle: TextStyle(fontFamily: 'GoogleSans', fontSize: 16, color: Color(0x60FFFFFF)),
+                        cursorColor: AppColors.bleuNuit,
+                        style: const TextStyle(
+                            fontFamily: 'GoogleSans', fontSize: 16, color: AppColors.gris),
+                        decoration: InputDecoration(
+                          hintText: s.juristesSearch,
+                          hintStyle: const TextStyle(fontFamily: 'GoogleSans', fontSize: 16,
+                              color: AppColors.grisMid),
                           border: InputBorder.none,
                           isDense: true,
-                          contentPadding: EdgeInsets.symmetric(vertical: 13),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 13),
                         ),
                       ),
                     ),
@@ -295,16 +461,9 @@ class _JuristesHeader extends StatelessWidget {
 // ─── Filtres ──────────────────────────────────────────────────────────────────
 
 class _FiltersBar extends StatelessWidget {
-  const _FiltersBar({
-    required this.roleFilter,
-    required this.dispOnly,
-    required this.onRole,
-    required this.onDisp,
-  });
+  const _FiltersBar({required this.roleFilter, required this.onRole});
   final _Role? roleFilter;
-  final bool dispOnly;
   final ValueChanged<_Role> onRole;
-  final VoidCallback onDisp;
 
   @override
   Widget build(BuildContext context) {
@@ -315,25 +474,16 @@ class _FiltersBar extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 18),
         child: Row(
-          children: [
-            ..._Role.values.map((r) => Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: _FilterChip(
-                label: _roleLabel(r),
-                icon: _roleIcon(r),
-                active: roleFilter == r,
-                activeColor: _roleColor(r),
-                onTap: () => onRole(r),
-              ),
-            )),
-            _FilterChip(
-              label: 'Disponible',
-              icon: Icons.circle,
-              active: dispOnly,
-              activeColor: AppColors.emeraude,
-              onTap: onDisp,
+          children: [_Role.juriste, _Role.psychologue, _Role.ong].map((r) => Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: _FilterChip(
+              label: _roleLabel(r),
+              icon: _roleIcon(r),
+              active: roleFilter == r,
+              activeColor: _roleColor(r),
+              onTap: () => onRole(r),
             ),
-          ],
+          )).toList(),
         ),
       ),
     );
@@ -386,27 +536,38 @@ class _FilterChip extends StatelessWidget {
 // ─── Carte spécialiste ────────────────────────────────────────────────────────
 
 class _SpecialistCard extends StatelessWidget {
-  const _SpecialistCard({required this.specialist, required this.onContact});
+  const _SpecialistCard({
+    required this.specialist,
+    required this.onContact,
+    required this.isContacting,
+  });
   final _Specialist specialist;
   final VoidCallback onContact;
+  final bool isContacting;
 
   String get _initials {
-    final parts = specialist.nom.replaceAll(RegExp(r'^(Me\.|Dr\.)'), '').trim().split(' ');
+    final parts = specialist.nom
+        .replaceAll(RegExp(r'^(Me\.|Dr\.)'), '')
+        .trim()
+        .split(' ');
     return parts.take(2).map((p) => p.isNotEmpty ? p[0] : '').join().toUpperCase();
   }
 
   @override
   Widget build(BuildContext context) {
-    final s = specialist;
+    final str   = AppStrings.of(context);
+    final s     = specialist;
     final color = _roleColor(s.role);
-    final bg = _roleBg(s.role);
+    final bg    = _roleBg(s.role);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
         color: AppColors.blanc,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: const [BoxShadow(color: Color(0x0F000000), blurRadius: 12, offset: Offset(0, 4))],
+        boxShadow: const [
+          BoxShadow(color: Color(0x0F000000), blurRadius: 12, offset: Offset(0, 4)),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -415,38 +576,23 @@ class _SpecialistCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Stack(
-                  children: [
-                    Container(
-                      width: 56, height: 56,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [color.withAlpha(200), color],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Text(_initials,
-                            style: const TextStyle(
-                              fontFamily: 'GoogleSans', fontSize: 20,
-                              fontWeight: FontWeight.w700, color: AppColors.blanc,
-                            )),
-                      ),
+                Container(
+                  width: 56, height: 56,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [color.withAlpha(200), color],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                    Positioned(
-                      bottom: 2, right: 2,
-                      child: Container(
-                        width: 14, height: 14,
-                        decoration: BoxDecoration(
-                          color: s.disponible ? AppColors.emeraude : AppColors.grisMid,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.blanc, width: 2),
-                        ),
-                      ),
-                    ),
-                  ],
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(_initials,
+                        style: const TextStyle(
+                          fontFamily: 'GoogleSans', fontSize: 20,
+                          fontWeight: FontWeight.w700, color: AppColors.blanc,
+                        )),
+                  ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -455,32 +601,37 @@ class _SpecialistCard extends StatelessWidget {
                     children: [
                       Text(s.nom, style: AppTextStyles.h3.copyWith(fontSize: 17)),
                       const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(_roleIcon(s.role), size: 12, color: color),
-                                const SizedBox(width: 4),
-                                Text(_roleLabel(s.role),
-                                    style: TextStyle(fontFamily: 'GoogleSans', fontSize: 12,
-                                        fontWeight: FontWeight.w700, color: color)),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            s.disponible ? '● Disponible' : '● Occupé',
-                            style: TextStyle(
-                              fontFamily: 'GoogleSans', fontSize: 12, fontWeight: FontWeight.w600,
-                              color: s.disponible ? AppColors.emeraude : AppColors.grisMid,
-                            ),
-                          ),
-                        ],
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(_roleIcon(s.role), size: 12, color: color),
+                            const SizedBox(width: 4),
+                            Text(s.roleDisplay,
+                                style: TextStyle(fontFamily: 'GoogleSans', fontSize: 12,
+                                    fontWeight: FontWeight.w700, color: color)),
+                          ],
+                        ),
                       ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.emeraudeLight,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.verified_rounded, size: 12, color: AppColors.emeraude),
+                      const SizedBox(width: 4),
+                      Text(str.juristesCertified,
+                          style: const TextStyle(fontFamily: 'GoogleSans', fontSize: 11,
+                              fontWeight: FontWeight.w700, color: AppColors.emeraude)),
                     ],
                   ),
                 ),
@@ -489,35 +640,36 @@ class _SpecialistCard extends StatelessWidget {
             const SizedBox(height: 14),
             const Divider(color: Color(0x0F000000), height: 1),
             const SizedBox(height: 12),
-            Wrap(
-              spacing: 8, runSpacing: 8,
-              children: [
-                _InfoChip(icon: Icons.auto_awesome_rounded, label: s.specialite, color: color, bg: bg),
-                _InfoChip(icon: Icons.location_on_rounded, label: s.region,
-                    color: AppColors.grisMid, bg: const Color(0xFFF0F0F0)),
-                if (s.experience != null)
-                  _InfoChip(icon: Icons.workspace_premium_rounded, label: s.experience!,
-                      color: AppColors.or, bg: AppColors.orLight),
-                _InfoChip(icon: Icons.folder_copy_rounded, label: '${s.dossiers} dossiers',
-                    color: AppColors.bleuNuit, bg: const Color(0xFFEEF2FF)),
-              ],
-            ),
+            if (s.telephone != null && s.telephone!.isNotEmpty)
+              _InfoChip(
+                icon: Icons.phone_rounded,
+                label: s.telephone!,
+                color: AppColors.grisMid,
+                bg: const Color(0xFFF0F0F0),
+              ),
             const SizedBox(height: 14),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: s.disponible ? onContact : null,
-                icon: const Icon(Icons.forum_rounded, size: 18),
-                label: Text(s.disponible ? 'Contacter' : 'Indisponible'),
+                onPressed: isContacting ? null : onContact,
+                icon: isContacting
+                    ? SizedBox(
+                        width: 18, height: 18,
+                        child: CircularProgressIndicator(
+                            color: AppColors.blanc, strokeWidth: 2),
+                      )
+                    : const Icon(Icons.forum_rounded, size: 18),
+                label: Text(str.juristesContact),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: s.disponible ? color : const Color(0xFFEEEEEE),
-                  foregroundColor: s.disponible ? AppColors.blanc : AppColors.grisLight,
-                  disabledBackgroundColor: const Color(0xFFEEEEEE),
-                  disabledForegroundColor: AppColors.grisLight,
+                  backgroundColor: color,
+                  foregroundColor: AppColors.blanc,
+                  disabledBackgroundColor: color.withAlpha(140),
+                  disabledForegroundColor: AppColors.blanc,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  textStyle: const TextStyle(fontFamily: 'GoogleSans', fontSize: 15, fontWeight: FontWeight.w700),
+                  textStyle: const TextStyle(
+                      fontFamily: 'GoogleSans', fontSize: 15, fontWeight: FontWeight.w700),
                 ),
               ),
             ),
@@ -559,6 +711,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppStrings.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -569,10 +722,10 @@ class _EmptyState extends StatelessWidget {
             child: const Icon(Icons.search_off_rounded, size: 36, color: AppColors.grisLight),
           ),
           const SizedBox(height: 20),
-          Text('Aucun spécialiste trouvé', style: AppTextStyles.h3.copyWith(fontSize: 18)),
+          Text(s.juristesEmpty, style: AppTextStyles.h3.copyWith(fontSize: 18)),
           const SizedBox(height: 8),
-          const Text('Modifiez vos filtres de recherche.',
-              style: TextStyle(fontFamily: 'GoogleSans', fontSize: 15, color: AppColors.grisMid)),
+          Text(s.juristesEmptyDesc,
+              style: const TextStyle(fontFamily: 'GoogleSans', fontSize: 15, color: AppColors.grisMid)),
         ],
       ),
     );

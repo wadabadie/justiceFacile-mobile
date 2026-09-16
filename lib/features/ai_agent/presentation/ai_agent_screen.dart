@@ -1,7 +1,12 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
+import '../../../core/constants/api_constants.dart';
+import '../../../core/services/api_service.dart';
+import '../../../core/l10n/app_strings.dart';
+import '../../../core/services/voice_service.dart';
 import '../../../shared/widgets/app_bottom_nav.dart';
 
 // ─── Modèle message ───────────────────────────────────────────────────────────
@@ -14,85 +19,6 @@ class _AiMessage {
   final String text;
   final _Sender sender;
   final DateTime time;
-}
-
-// ─── Réponses simulées ────────────────────────────────────────────────────────
-
-String _mockResponse(String query) {
-  final q = query.toLowerCase();
-
-  if (q.contains('vbg') || q.contains('violence') || q.contains('agression') || q.contains('conjugal')) {
-    return 'En cas de violence basée sur le genre, vous êtes protégé(e) par les articles 292 à 297 du Code pénal camerounais (Loi n° 2016/007).\n\n'
-        '**Vos droits immédiats :**\n'
-        '• Porter plainte auprès de la police (✆ 117) ou du parquet\n'
-        '• Demander une ordonnance de protection\n'
-        '• Accéder gratuitement à un accompagnement VBG via ce module\n\n'
-        'Voulez-vous que je vous aide à préparer un signalement ?';
-  }
-
-  if (q.contains('licenci') || q.contains('travail') || q.contains('emploi') || q.contains('contrat')) {
-    return 'Le Code du travail camerounais (Loi n° 92/007) protège les travailleurs contre les licenciements abusifs.\n\n'
-        '**Points clés :**\n'
-        '• Tout licenciement doit être justifié par une cause réelle et sérieuse\n'
-        '• Un préavis est obligatoire (durée selon l\'ancienneté)\n'
-        '• En cas de licenciement abusif : droit à des dommages-intérêts (art. 67)\n\n'
-        'Avez-vous reçu une lettre de licenciement ? Je peux vous aider à l\'analyser.';
-  }
-
-  if (q.contains('terrain') || q.contains('foncier') || q.contains('propriété') || q.contains('heritage') || q.contains('héritage')) {
-    return 'Les litiges fonciers au Cameroun sont régis par l\'Ordonnance n° 74-1 du 6 juillet 1974.\n\n'
-        '**À savoir :**\n'
-        '• La propriété est prouvée par le titre foncier ou l\'immatriculation\n'
-        '• Les droits coutumiers sont reconnus mais doivent être formalisés\n'
-        '• En cas de conflit : saisine du tribunal de grande instance\n\n'
-        'Disposez-vous d\'un titre foncier ou d\'un acte notarié ?';
-  }
-
-  if (q.contains('mariage') || q.contains('divorce') || q.contains('pension') || q.contains('famille')) {
-    return 'Le droit de la famille camerounais est encadré par l\'Ordonnance n° 81-02 et le Code civil.\n\n'
-        '**En matière de divorce :**\n'
-        '• Divorce possible par consentement mutuel ou pour faute\n'
-        '• La pension alimentaire est fixée par le juge selon les ressources\n'
-        '• La garde des enfants suit l\'intérêt supérieur de l\'enfant\n\n'
-        'Souhaitez-vous des informations sur une situation particulière ?';
-  }
-
-  if (q.contains('plainte') || q.contains('porter plainte') || q.contains('signalement')) {
-    return 'Pour porter plainte au Cameroun :\n\n'
-        '**Étapes à suivre :**\n'
-        '1. Rendez-vous au commissariat ou à la gendarmerie le plus proche\n'
-        '2. Demandez à "déposer une plainte" ou à faire une "déclaration"\n'
-        '3. Conservez le procès-verbal remis par l\'agent\n'
-        '4. Vous pouvez aussi saisir directement le Procureur de la République\n\n'
-        'Via Justice Facile, vous pouvez également faire un signalement anonyme dans le module VBG.';
-  }
-
-  if (q.contains('droit') || q.contains('loi') || q.contains('texte')) {
-    return 'La bibliothèque juridique de Justice Facile contient les principaux textes de loi camerounais :\n\n'
-        '• Code pénal (2016)\n'
-        '• Code du travail (1992)\n'
-        '• Code de procédure pénale (2005)\n'
-        '• Loi sur la protection de l\'enfant (2019)\n'
-        '• Régime foncier (1974)\n\n'
-        'Vous pouvez y accéder depuis la section **Textes de Loi**. Sur quel texte voulez-vous des précisions ?';
-  }
-
-  if (q.contains('bonjour') || q.contains('salut') || q.contains('bonsoir') || q.contains('aide')) {
-    return 'Bonjour ! Je suis l\'Assistant IA de Justice Facile.\n\n'
-        'Je peux vous aider à :\n'
-        '• Comprendre vos droits\n'
-        '• Identifier les lois applicables à votre situation\n'
-        '• Préparer vos démarches juridiques\n'
-        '• Vous orienter vers le bon spécialiste\n\n'
-        'Quelle est votre situation ?';
-  }
-
-  return 'Je comprends votre question. Pour vous apporter une réponse précise et adaptée à votre situation, '
-      'je vous recommande de :\n\n'
-      '• Consulter la section **Textes de Loi** pour les références légales\n'
-      '• Contacter un **Juriste** disponible sur la plateforme\n'
-      '• Ouvrir un **dossier** pour un suivi personnalisé\n\n'
-      'Pouvez-vous me donner plus de détails sur votre situation ?';
 }
 
 // ─── Questions suggérées ──────────────────────────────────────────────────────
@@ -120,17 +46,92 @@ class _AIAgentScreenState extends State<AIAgentScreen> {
   final _scroll = ScrollController();
   final _messages = <_AiMessage>[];
   bool _isTyping = false;
+  bool _loadingHistory = true;
+  bool _isListening = false;
+
+  @override
+  void initState() {
+    super.initState();
+    VoiceService.instance.addListener(_onVoiceChanged);
+    _loadHistory();
+  }
+
+  void _onVoiceChanged() {
+    if (!VoiceService.instance.isListening && _isListening) {
+      setState(() => _isListening = false);
+    }
+  }
+
+  Future<void> _loadHistory() async {
+    try {
+      final res = await ApiService.instance.get(ApiConstants.agentJuridiqueHistorique);
+      final sorted = (res.data as List<dynamic>).toList()
+        ..sort((a, b) {
+          final dA = DateTime.tryParse((a as Map)['date_creation'] as String? ?? '') ?? DateTime(0);
+          final dB = DateTime.tryParse((b as Map)['date_creation'] as String? ?? '') ?? DateTime(0);
+          return dA.compareTo(dB);
+        });
+      if (!mounted) return;
+      final msgs = <_AiMessage>[];
+      for (final item in sorted) {
+        final date = DateTime.tryParse(item['date_creation'] as String? ?? '')?.toLocal()
+            ?? DateTime.now();
+        msgs.add(_AiMessage(text: item['question'] as String? ?? '', sender: _Sender.user, time: date));
+        msgs.add(_AiMessage(text: item['reponse'] as String? ?? '', sender: _Sender.ai, time: date));
+      }
+      setState(() {
+        _messages.addAll(msgs);
+        _loadingHistory = false;
+      });
+      if (msgs.isNotEmpty) _scrollDown();
+    } on DioException {
+      if (!mounted) return;
+      setState(() => _loadingHistory = false);
+    }
+  }
 
   @override
   void dispose() {
+    VoiceService.instance.removeListener(_onVoiceChanged);
+    VoiceService.instance.stopSpeaking();
+    VoiceService.instance.stopListening();
     _ctrl.dispose();
     _scroll.dispose();
     super.dispose();
   }
 
+  Future<void> _toggleMic() async {
+    final voice = VoiceService.instance;
+    if (_isListening) {
+      // stopListening() fires onFinal with the full accumulated text
+      await voice.stopListening();
+      return;
+    }
+    if (!voice.sttAvailable) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Reconnaissance vocale non disponible sur cet appareil.'),
+        backgroundColor: AppColors.rouge,
+      ));
+      return;
+    }
+    setState(() => _isListening = true);
+    final started = await voice.startListening(
+      onPartial: (text) {
+        if (text.isNotEmpty && mounted) setState(() => _ctrl.text = text);
+      },
+      onFinal: (text) {
+        if (mounted) setState(() {
+          _isListening = false;
+          if (text.isNotEmpty) _ctrl.text = text;
+        });
+      },
+    );
+    if (!started && mounted) setState(() => _isListening = false);
+  }
+
   Future<void> _send(String text) async {
     final trimmed = text.trim();
-    if (trimmed.isEmpty) return;
+    if (trimmed.isEmpty || _isTyping) return;
     _ctrl.clear();
 
     setState(() {
@@ -139,14 +140,29 @@ class _AIAgentScreenState extends State<AIAgentScreen> {
     });
     _scrollDown();
 
-    await Future.delayed(const Duration(milliseconds: 1400));
-    if (!mounted) return;
-
-    setState(() {
-      _isTyping = false;
-      _messages.add(_AiMessage(text: _mockResponse(trimmed), sender: _Sender.ai));
-    });
-    _scrollDown();
+    try {
+      final res = await ApiService.instance.post(
+        ApiConstants.agentJuridique,
+        data: {'question': trimmed},
+      );
+      if (!mounted) return;
+      final reponse = res.data['reponse'] as String? ?? '';
+      final date = DateTime.tryParse(res.data['date_creation'] as String? ?? '')?.toLocal()
+          ?? DateTime.now();
+      setState(() {
+        _isTyping = false;
+        _messages.add(_AiMessage(text: reponse, sender: _Sender.ai, time: date));
+      });
+      _scrollDown();
+      VoiceService.instance.speak(reponse);
+    } on DioException catch (e) {
+      if (!mounted) return;
+      setState(() => _isTyping = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(ApiService.extractError(e.response?.data)),
+        backgroundColor: AppColors.rouge,
+      ));
+    }
   }
 
   void _scrollDown() {
@@ -166,19 +182,26 @@ class _AIAgentScreenState extends State<AIAgentScreen> {
         children: [
           const _AIHeader(),
           Expanded(
-            child: _messages.isEmpty
-                ? _WelcomeView(onSuggestion: _send)
-                : ListView.builder(
-                    controller: _scroll,
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                    itemCount: _messages.length + (_isTyping ? 1 : 0),
-                    itemBuilder: (_, i) {
-                      if (i == _messages.length) return const _TypingIndicator();
-                      return _MessageBubble(message: _messages[i]);
-                    },
-                  ),
+            child: _loadingHistory
+                ? const Center(child: CircularProgressIndicator(color: AppColors.bleuNuit))
+                : _messages.isEmpty
+                    ? _WelcomeView(onSuggestion: _send)
+                    : ListView.builder(
+                        controller: _scroll,
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                        itemCount: _messages.length + (_isTyping ? 1 : 0),
+                        itemBuilder: (_, i) {
+                          if (i == _messages.length) return const _TypingIndicator();
+                          return _MessageBubble(message: _messages[i]);
+                        },
+                      ),
           ),
-          _InputBar(controller: _ctrl, onSend: _send),
+          _InputBar(
+            controller: _ctrl,
+            onSend: _send,
+            isListening: _isListening,
+            onMicTap: _toggleMic,
+          ),
         ],
       ),
       bottomNavigationBar: const AppBottomNav(current: NavTab.ia),
@@ -232,15 +255,15 @@ class _AIHeader extends StatelessWidget {
                 child: const Icon(Icons.auto_awesome_rounded, color: AppColors.blanc, size: 22),
               ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Assistant IA',
-                        style: TextStyle(fontFamily: 'GoogleSans', fontSize: 19,
+                    Text(AppStrings.of(context).aiTitle,
+                        style: const TextStyle(fontFamily: 'GoogleSans', fontSize: 19,
                             fontWeight: FontWeight.w700, color: AppColors.blanc)),
-                    Text('Conseil juridique intelligent',
-                        style: TextStyle(fontFamily: 'GoogleSans', fontSize: 13,
+                    Text(AppStrings.of(context).aiSubtitle,
+                        style: const TextStyle(fontFamily: 'GoogleSans', fontSize: 13,
                             color: Color(0x80FFFFFF))),
                   ],
                 ),
@@ -252,12 +275,12 @@ class _AIHeader extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: AppColors.emeraude.withAlpha(100)),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.circle, size: 8, color: AppColors.emeraude),
-                    SizedBox(width: 5),
-                    Text('En ligne',
-                        style: TextStyle(fontFamily: 'GoogleSans', fontSize: 12,
+                    const Icon(Icons.circle, size: 8, color: AppColors.emeraude),
+                    const SizedBox(width: 5),
+                    Text(AppStrings.of(context).aiOnline,
+                        style: const TextStyle(fontFamily: 'GoogleSans', fontSize: 12,
                             fontWeight: FontWeight.w600, color: AppColors.emeraude)),
                   ],
                 ),
@@ -308,14 +331,14 @@ class _WelcomeView extends StatelessWidget {
                   child: const Icon(Icons.auto_awesome_rounded, color: AppColors.blanc, size: 38),
                 ),
                 const SizedBox(height: 16),
-                const Text('Bonjour ! Je suis JF·IA',
-                    style: TextStyle(fontFamily: 'GoogleSans', fontSize: 22,
+                Text(AppStrings.of(context).aiWelcome,
+                    style: const TextStyle(fontFamily: 'GoogleSans', fontSize: 22,
                         fontWeight: FontWeight.w700, color: AppColors.blanc)),
                 const SizedBox(height: 8),
-                const Text(
-                  'Votre assistant juridique intelligent.\nPosez-moi n\'importe quelle question sur vos droits au Cameroun.',
+                Text(
+                  AppStrings.of(context).aiSubhead,
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontFamily: 'GoogleSans', fontSize: 15,
+                  style: const TextStyle(fontFamily: 'GoogleSans', fontSize: 15,
                       color: Color(0xA0FFFFFF), height: 1.5),
                 ),
                 const SizedBox(height: 18),
@@ -326,14 +349,14 @@ class _WelcomeView extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.white.withAlpha(30)),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.info_outline_rounded, color: AppColors.orPale, size: 16),
-                      SizedBox(width: 8),
+                      const Icon(Icons.info_outline_rounded, color: AppColors.orPale, size: 16),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Les réponses sont informatives. Consultez un juriste pour un avis professionnel.',
-                          style: TextStyle(fontFamily: 'GoogleSans', fontSize: 13,
+                          AppStrings.of(context).aiDisclaimer,
+                          style: const TextStyle(fontFamily: 'GoogleSans', fontSize: 13,
                               color: AppColors.orPale, height: 1.4),
                         ),
                       ),
@@ -349,7 +372,7 @@ class _WelcomeView extends StatelessWidget {
               Container(width: 4, height: 20,
                   decoration: BoxDecoration(color: AppColors.or, borderRadius: BorderRadius.circular(2))),
               const SizedBox(width: 10),
-              Text('Questions fréquentes', style: AppTextStyles.h2.copyWith(fontSize: 18)),
+              Text(AppStrings.of(context).aiQuestionsLabel, style: AppTextStyles.h2.copyWith(fontSize: 18)),
             ],
           ),
           const SizedBox(height: 14),
@@ -572,64 +595,168 @@ class _TypingIndicatorState extends State<_TypingIndicator> with TickerProviderS
   }
 }
 
+// ─── Indicateur d'écoute active ──────────────────────────────────────────────
+
+class _ListeningBanner extends StatefulWidget {
+  const _ListeningBanner();
+
+  @override
+  State<_ListeningBanner> createState() => _ListeningBannerState();
+}
+
+class _ListeningBannerState extends State<_ListeningBanner>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _pulse,
+      builder: (_, __) => Container(
+        margin: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        decoration: BoxDecoration(
+          color: AppColors.rouge.withAlpha(12),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.rouge.withAlpha(60)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 8, height: 8,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.rouge.withAlpha((120 + (_pulse.value * 135)).toInt()),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              AppStrings.of(context).aiListening,
+              style: const TextStyle(
+                fontFamily: 'GoogleSans',
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: AppColors.rouge,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ─── Zone de saisie ──────────────────────────────────────────────────────────
 
 class _InputBar extends StatelessWidget {
-  const _InputBar({required this.controller, required this.onSend});
+  const _InputBar({
+    required this.controller,
+    required this.onSend,
+    required this.isListening,
+    required this.onMicTap,
+  });
   final TextEditingController controller;
   final ValueChanged<String> onSend;
+  final bool isListening;
+  final VoidCallback onMicTap;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       color: AppColors.blanc,
-      padding: EdgeInsets.fromLTRB(14, 10, 14, MediaQuery.of(context).padding.bottom + 10),
-      child: Row(
+      padding: EdgeInsets.fromLTRB(0, 10, 0, MediaQuery.of(context).padding.bottom + 10),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 42, height: 42,
-            decoration: BoxDecoration(color: AppColors.fond2, borderRadius: BorderRadius.circular(12)),
-            child: const Icon(Icons.mic_none_rounded, color: AppColors.grisMid, size: 22),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: AppColors.fond,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: const Color(0x1A000000)),
-              ),
-              child: TextField(
-                controller: controller,
-                maxLines: null,
-                textCapitalization: TextCapitalization.sentences,
-                style: const TextStyle(fontFamily: 'GoogleSans', fontSize: 15, color: AppColors.gris),
-                decoration: const InputDecoration(
-                  hintText: 'Posez votre question juridique...',
-                  hintStyle: TextStyle(fontFamily: 'GoogleSans', fontSize: 15, color: AppColors.grisLight),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: 11),
-                ),
-                onSubmitted: onSend,
-              ),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            transitionBuilder: (child, anim) => SizeTransition(
+              sizeFactor: anim,
+              child: FadeTransition(opacity: anim, child: child),
             ),
+            child: isListening
+                ? const _ListeningBanner()
+                : const SizedBox.shrink(),
           ),
-          const SizedBox(width: 10),
-          GestureDetector(
-            onTap: () => onSend(controller.text),
-            child: Container(
-              width: 44, height: 44,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.or, AppColors.orDark],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: onMicTap,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 42, height: 42,
+                    decoration: BoxDecoration(
+                      color: isListening ? AppColors.rouge : AppColors.fond2,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      isListening ? Icons.mic_rounded : Icons.mic_none_rounded,
+                      color: isListening ? AppColors.blanc : AppColors.grisMid,
+                      size: 22,
+                    ),
+                  ),
                 ),
-                shape: BoxShape.circle,
-                boxShadow: [BoxShadow(color: AppColors.or.withAlpha(100), blurRadius: 10, offset: const Offset(0, 4))],
-              ),
-              child: const Icon(Icons.send_rounded, color: AppColors.blanc, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: AppColors.fond,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: const Color(0x1A000000)),
+                    ),
+                    child: TextField(
+                      controller: controller,
+                      maxLines: null,
+                      textCapitalization: TextCapitalization.sentences,
+                      style: const TextStyle(fontFamily: 'GoogleSans', fontSize: 15, color: AppColors.gris),
+                      decoration: InputDecoration(
+                        hintText: AppStrings.of(context).aiInputHint,
+                        hintStyle: const TextStyle(fontFamily: 'GoogleSans', fontSize: 15, color: AppColors.grisLight),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 11),
+                      ),
+                      onSubmitted: onSend,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                GestureDetector(
+                  onTap: () => onSend(controller.text),
+                  child: Container(
+                    width: 44, height: 44,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [AppColors.or, AppColors.orDark],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [BoxShadow(color: AppColors.or.withAlpha(100), blurRadius: 10, offset: const Offset(0, 4))],
+                    ),
+                    child: const Icon(Icons.send_rounded, color: AppColors.blanc, size: 20),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

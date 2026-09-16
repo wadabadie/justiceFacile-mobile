@@ -61,12 +61,31 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   }
 
   void _onDigitChanged(int index, String value) {
-    if (value.isNotEmpty && index < 5) {
-      // Auto-advance to next field
+    final digits = value.replaceAll(RegExp(r'[^0-9]'), '');
+
+    if (digits.length >= 6) {
+      // Paste: distribute all 6 digits across boxes
+      for (int i = 0; i < 6; i++) {
+        _controllers[i].text = digits[i];
+      }
+      FocusScope.of(context).requestFocus(_focusNodes[5]);
+      setState(() {});
+      return;
+    }
+
+    if (digits.length > 1) {
+      // Overtype (box already had a digit): keep only the last typed
+      _controllers[index].text = digits[digits.length - 1];
+      _controllers[index].selection = const TextSelection.collapsed(offset: 1);
+      if (index < 5) FocusScope.of(context).requestFocus(_focusNodes[index + 1]);
+      setState(() {});
+      return;
+    }
+
+    if (digits.length == 1 && index < 5) {
       FocusScope.of(context).requestFocus(_focusNodes[index + 1]);
     }
-    if (value.isEmpty && index > 0) {
-      // Auto-go back on delete
+    if (digits.isEmpty && index > 0) {
       FocusScope.of(context).requestFocus(_focusNodes[index - 1]);
     }
     setState(() {});
@@ -224,7 +243,6 @@ class _DigitBox extends StatelessWidget {
         autofocus: autofocus,
         textAlign: TextAlign.center,
         keyboardType: TextInputType.number,
-        maxLength: 1,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         style: const TextStyle(
           fontFamily: 'GoogleSans',
@@ -233,7 +251,6 @@ class _DigitBox extends StatelessWidget {
           color: AppColors.bleuNuit,
         ),
         decoration: InputDecoration(
-          counterText: '',
           filled: true,
           fillColor: AppColors.blanc,
           enabledBorder: OutlineInputBorder(

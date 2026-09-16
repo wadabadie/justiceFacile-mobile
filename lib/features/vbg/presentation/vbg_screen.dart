@@ -1,8 +1,15 @@
+import 'dart:async' show unawaited;
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/api_constants.dart';
 import '../../../core/constants/app_text_styles.dart';
+import '../../../core/l10n/app_strings.dart';
+import '../../../core/services/api_service.dart';
 
 class VBGScreen extends StatefulWidget {
   const VBGScreen({super.key});
@@ -34,8 +41,59 @@ class _VBGScreenState extends State<VBGScreen> with TickerProviderStateMixin {
     if (await canLaunchUrl(uri)) await launchUrl(uri);
   }
 
+  Future<void> _triggerSOS() async {
+    // Fire API alert without blocking the emergency call
+    unawaited(_fireSOSAlert());
+    await _dial('117');
+  }
+
+  Future<void> _fireSOSAlert() async {
+    try {
+      final pos = await _getPosition();
+      await ApiService.instance.post(ApiConstants.sosDeclencer, data: {
+        if (pos != null) 'latitude':  pos.latitude,
+        if (pos != null) 'longitude': pos.longitude,
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppStrings.of(context).sosAlertRecorded,
+              style: const TextStyle(fontFamily: 'GoogleSans')),
+          backgroundColor: AppColors.rouge,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } on DioException {
+      // Silently swallow: the emergency call takes absolute priority
+    } catch (_) {
+      // GPS or permission error — alert still fires without location
+    }
+  }
+
+  // Returns the current position, or null if permission denied / GPS unavailable.
+  Future<Position?> _getPosition() async {
+    try {
+      LocationPermission perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.denied ||
+          perm == LocationPermission.deniedForever) return null;
+
+      return await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 8),
+        ),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final s = AppStrings.of(context);
     return Scaffold(
       backgroundColor: AppColors.fond,
       body: Column(
@@ -47,12 +105,12 @@ class _VBGScreenState extends State<VBGScreen> with TickerProviderStateMixin {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _SOSButton(controller: _pulseCtrl, onTap: () => _dial('117')),
+                  _SOSButton(controller: _pulseCtrl, onTap: _triggerSOS),
                   const SizedBox(height: 10),
-                  const Center(
+                  Center(
                     child: Text(
-                      'Appuyez pour appeler la Police nationale',
-                      style: TextStyle(
+                      s.sosPressInstruction,
+                      style: const TextStyle(
                         fontFamily: 'GoogleSans',
                         fontSize: 14,
                         color: AppColors.grisMid,
@@ -61,27 +119,27 @@ class _VBGScreenState extends State<VBGScreen> with TickerProviderStateMixin {
                     ),
                   ),
                   const SizedBox(height: 34),
-                  const _SectionTitle(text: "Besoin d'aide ?"),
+                  _SectionTitle(text: s.vbgNeedHelp),
                   const SizedBox(height: 14),
                   const _QuickActionsGrid(),
                   const SizedBox(height: 34),
-                  const _SectionTitle(text: "Numéros d'urgence"),
+                  _SectionTitle(text: s.vbgEmergency),
                   const SizedBox(height: 14),
                   _EmergencyTile(
                     icon: Icons.local_police_rounded,
-                    label: 'Police nationale',
+                    label: s.vbgPolice,
                     number: '117',
                     onCall: () => _dial('117'),
                   ),
                   _EmergencyTile(
                     icon: Icons.local_fire_department_rounded,
-                    label: 'Pompiers',
+                    label: s.vbgFirefighters,
                     number: '118',
                     onCall: () => _dial('118'),
                   ),
                   _EmergencyTile(
                     icon: Icons.medical_services_rounded,
-                    label: 'SAMU',
+                    label: s.vbgSamu,
                     number: '119',
                     onCall: () => _dial('119'),
                   ),
@@ -157,12 +215,12 @@ class _VBGHeader extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 14),
-                  const Column(
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'MODULE VBG',
-                        style: TextStyle(
+                        AppStrings.of(context).vbgModuleLabel,
+                        style: const TextStyle(
                           fontFamily: 'GoogleSans',
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
@@ -171,8 +229,8 @@ class _VBGHeader extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'Protection & Accompagnement',
-                        style: TextStyle(
+                        AppStrings.of(context).vbgTitle,
+                        style: const TextStyle(
                           fontFamily: 'GoogleSans',
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
@@ -191,14 +249,14 @@ class _VBGHeader extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: Colors.white.withAlpha(35)),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.lock_outline_rounded, color: Color(0xCCFFFFFF), size: 14),
-                    SizedBox(width: 7),
+                    const Icon(Icons.lock_outline_rounded, color: Color(0xCCFFFFFF), size: 14),
+                    const SizedBox(width: 7),
                     Text(
-                      'Espace confidentiel · Signalement anonyme disponible',
-                      style: TextStyle(
+                      AppStrings.of(context).vbgConfidential,
+                      style: const TextStyle(
                         fontFamily: 'GoogleSans',
                         fontSize: 13,
                         color: Color(0xCCFFFFFF),
@@ -258,14 +316,14 @@ class _SOSButton extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: const Column(
+                    child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.sos_rounded, color: AppColors.blanc, size: 46),
-                        SizedBox(height: 2),
+                        const Icon(Icons.sos_rounded, color: AppColors.blanc, size: 46),
+                        const SizedBox(height: 2),
                         Text(
-                          'APPELER',
-                          style: TextStyle(
+                          AppStrings.of(context).sosCall,
+                          style: const TextStyle(
                             fontFamily: 'GoogleSans',
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
@@ -328,11 +386,12 @@ class _QuickActionsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppStrings.of(context);
     final items = [
-      (Icons.edit_note_rounded, AppColors.rouge, AppColors.rougeLight, 'Signalement\nAnonyme', '/new-dossier'),
-      (Icons.gavel_rounded, AppColors.bleuMid, const Color(0xFFE8F0FE), 'Consulter\nun Juriste', '/juristes'),
-      (Icons.psychology_rounded, AppColors.emeraude, AppColors.emeraudeLight, 'Soutien\nPsychologique', ''),
-      (Icons.people_rounded, AppColors.or, AppColors.orLight, 'ONG\nPartenaires', ''),
+      (Icons.edit_note_rounded, AppColors.rouge, AppColors.rougeLight, s.vbgReportAnonymous, '/new-dossier'),
+      (Icons.gavel_rounded, AppColors.bleuMid, const Color(0xFFE8F0FE), s.vbgConsultLawyer, '/juristes'),
+      (Icons.psychology_rounded, AppColors.emeraude, AppColors.emeraudeLight, s.vbgPsySupport, ''),
+      (Icons.people_rounded, AppColors.or, AppColors.orLight, s.vbgNgoPartners, ''),
     ];
     return GridView.count(
       crossAxisCount: 2,
@@ -400,9 +459,9 @@ class _ActionCard extends StatelessWidget {
               ),
             ),
             if (onTap == null)
-              const Text(
-                'Bientôt',
-                style: TextStyle(
+              Text(
+                AppStrings.of(context).vbgComingSoon,
+                style: const TextStyle(
                   fontFamily: 'GoogleSans',
                   fontSize: 11,
                   color: AppColors.grisLight,
@@ -490,14 +549,14 @@ class _EmergencyTile extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.phone_rounded, color: AppColors.blanc, size: 18),
-                  SizedBox(width: 6),
+                  const Icon(Icons.phone_rounded, color: AppColors.blanc, size: 18),
+                  const SizedBox(width: 6),
                   Text(
-                    'Appeler',
-                    style: TextStyle(
+                    AppStrings.of(context).btnCall,
+                    style: const TextStyle(
                       fontFamily: 'GoogleSans',
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
@@ -521,11 +580,8 @@ class _RightsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const points = [
-      'Loi n° 2016/007 du 12 juillet 2016 — Code pénal camerounais (arts. 292–297 : violences conjugales)',
-      'La violence domestique est un crime passible d\'emprisonnement selon le droit camerounais',
-      'Vous pouvez déposer une plainte anonymement via ce module',
-    ];
+    final s = AppStrings.of(context);
+    final points = [s.vbgRightsText1, s.vbgRightsText2, s.vbgRightsText3];
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
@@ -540,13 +596,13 @@ class _RightsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.menu_book_rounded, color: AppColors.orPale, size: 20),
-              SizedBox(width: 10),
+              const Icon(Icons.menu_book_rounded, color: AppColors.orPale, size: 20),
+              const SizedBox(width: 10),
               Text(
-                'VOS DROITS',
-                style: TextStyle(
+                s.vbgRightsLabel,
+                style: const TextStyle(
                   fontFamily: 'GoogleSans',
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -584,19 +640,19 @@ class _RightsCard extends StatelessWidget {
           const SizedBox(height: 6),
           GestureDetector(
             onTap: () => context.go('/lois'),
-            child: const Row(
+            child: Row(
               children: [
                 Text(
-                  'Voir tous les textes de loi',
-                  style: TextStyle(
+                  s.vbgAllLaws,
+                  style: const TextStyle(
                     fontFamily: 'GoogleSans',
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                     color: AppColors.orPale,
                   ),
                 ),
-                SizedBox(width: 5),
-                Icon(Icons.arrow_forward_rounded, color: AppColors.orPale, size: 16),
+                const SizedBox(width: 5),
+                const Icon(Icons.arrow_forward_rounded, color: AppColors.orPale, size: 16),
               ],
             ),
           ),
@@ -620,14 +676,14 @@ class _AnonymityBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.emeraude.withAlpha(60)),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Icon(Icons.verified_user_rounded, color: AppColors.emeraude, size: 28),
-          SizedBox(width: 14),
+          const Icon(Icons.verified_user_rounded, color: AppColors.emeraude, size: 28),
+          const SizedBox(width: 14),
           Expanded(
             child: Text(
-              'Aucune information personnelle n\'est requise pour signaler. Votre identité reste protégée.',
-              style: TextStyle(
+              AppStrings.of(context).vbgAnonymity,
+              style: const TextStyle(
                 fontFamily: 'GoogleSans',
                 fontSize: 14,
                 color: AppColors.emeraude,

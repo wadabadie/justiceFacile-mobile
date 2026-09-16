@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/api_constants.dart';
+import '../../../core/services/api_service.dart';
 import '../domain/entities/user_entity.dart';
 import '../domain/repositories/i_auth_repository.dart';
 
@@ -13,10 +14,10 @@ final class AuthRepositoryImpl implements IAuthRepository {
   static const _kEmail     = 'user_email';
   static const _kRole      = 'user_role';
 
-  // serverClientId = Web client (type 3) — required to receive an idToken
+  // Backend uses dj-rest-auth with GoogleOAuth2Adapter which expects access_token (not id_token).
+  // serverClientId is not needed for the access_token flow.
   final _googleSignIn = GoogleSignIn(
     scopes: ['email', 'profile'],
-    serverClientId: '551062778768-hm70bk0f6ne85a7jla0iok7sv6e28ush.apps.googleusercontent.com',
   );
 
   final _dio = Dio(BaseOptions(
@@ -70,34 +71,64 @@ final class AuthRepositoryImpl implements IAuthRepository {
     }
   }
 
-  // Signs in with Google, then exchanges the Google ID token with the backend
-  // via POST /api/v1/auth/google/ to obtain JWT tokens.
+  // Signs in with Google, then exchanges the Google access token with the backend.
   Future<UserEntity> loginWithGoogle() async {
+    // Step 1 — Google account picker
+    final account = await _googleSignIn.signIn();
+    if (account == null) throw Exception('google_cancelled');
+
+    // Step 2 — Google OAuth tokens
+    final auth        = await account.authentication;
+    final accessToken = auth.accessToken;
+    if (accessToken == null) throw Exception('google_no_token');
+
+    // Step 3 — Backend exchange
     try {
-      final account = await _googleSignIn.signIn();
-      if (account == null) throw Exception('google_cancelled');
-
-      final auth    = await account.authentication;
-      final idToken = auth.idToken;
-      if (idToken == null) throw Exception('google_no_token');
-
-      final res = await _dio.post(
+      final res  = await _dio.post(
         ApiConstants.googleAuth,
-        data: {'id_token': idToken},
+        data: {'access_token': accessToken},
       );
-      return _handleAuthResponse(res.data as Map<String, dynamic>);
+      final data = res.data as Map<String, dynamic>;
+
+      // dj-rest-auth returns {access, refresh, user}
+      // custom login_view returns {user, tokens:{access, refresh}}
+      if (data.containsKey('tokens')) {
+        return _handleAuthResponse(data);
+      }
+      return _handleSocialAuthResponse(data);
     } on DioException catch (e) {
-      throw Exception(_extractError(e.response?.data));
+      final statusCode = e.response?.statusCode;
+      final body       = e.response?.data;
+      // Propagate a tagged error so the UI can show the real cause.
+      throw Exception('google_backend_${statusCode}_${_extractError(body)}');
     }
   }
 
   // Submits the 6-digit verification code received by email.
+  // Backend returns real JWT tokens after verification — save them so the user is logged in.
   Future<void> verifyEmail(String email, String code) async {
     try {
-      await _dio.post(
+      final res = await _dio.post(
         ApiConstants.verifyEmail,
         data: {'email': email, 'code': code},
       );
+      final data = res.data as Map<String, dynamic>? ?? {};
+      final tokens = data['tokens'] as Map<String, dynamic>?;
+      if (tokens != null) {
+        final access  = tokens['access']  as String? ?? '';
+        final refresh = tokens['refresh'] as String? ?? '';
+        final user    = data['user']      as Map<String, dynamic>? ?? {};
+        if (access.isNotEmpty) {
+          await _persistSession(
+            token:     access,
+            refresh:   refresh,
+            firstName: user['first_name'] as String? ?? '',
+            lastName:  user['last_name']  as String? ?? '',
+            email:     email,
+            role:      (user['profile'] as Map?)?['role'] as String? ?? 'citoyen',
+          );
+        }
+      }
     } on DioException catch (e) {
       final msg = (e.response?.data as Map?)?['error'] ?? 'invalid_code';
       throw Exception(msg);
@@ -119,6 +150,63 @@ final class AuthRepositoryImpl implements IAuthRepository {
     for (final k in [_kToken, _kRefresh, _kFirstName, _kLastName, _kEmail, _kRole]) {
       await p.remove(k);
     }
+    await _googleSignIn.signOut();
+  }
+
+  // Fetch full profile from API — includes phone, region, 2FA status.
+  Future<UserEntity?> fetchMe() async {
+    try {
+      final res  = await ApiService.instance.get(ApiConstants.me);
+      final data = res.data as Map<String, dynamic>;
+      final prof = data['profile'] as Map<String, dynamic>? ?? {};
+      return UserEntity(
+        id:          data['id']         as int?    ?? 0,
+        firstName:   data['first_name'] as String? ?? '',
+        lastName:    data['last_name']  as String? ?? '',
+        email:       data['email']      as String? ?? '',
+        role:        prof['role']       as String? ?? 'citoyen',
+        phone:       prof['telephone']  as String? ?? prof['phone'] as String?,
+        region:      prof['region']     as String?,
+        deuxFaActif: prof['deux_fa_actif'] as bool?
+                  ?? prof['two_factor_enabled'] as bool?
+                  ?? false,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // Update profile fields — tries PATCH then PUT on /auth/me/.
+  Future<void> updateMe({
+    String? firstName,
+    String? lastName,
+    String? phone,
+    String? region,
+  }) async {
+    final body = <String, dynamic>{};
+    if (firstName != null) body['first_name'] = firstName;
+    if (lastName  != null) body['last_name']  = lastName;
+    if (phone     != null) body['telephone']  = phone;
+    if (region    != null) body['region']     = region;
+    try {
+      await ApiService.instance.patch(ApiConstants.me, data: body);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 405) {
+        // Backend doesn't expose a write endpoint yet — rethrow with clear message.
+        throw Exception('endpoint_indisponible');
+      }
+      rethrow;
+    }
+  }
+
+  // Toggle 2FA on/off — backend flips the current state.
+  Future<void> toggle2FA() async {
+    await ApiService.instance.post(ApiConstants.toggleDeuxFa, data: {});
+  }
+
+  // Permanently delete account.
+  Future<void> deleteAccount() async {
+    await ApiService.instance.delete(ApiConstants.supprimerCompte);
   }
 
   // Rehydrate UserEntity from local storage — called by SplashScreen to skip login.
@@ -154,6 +242,34 @@ final class AuthRepositoryImpl implements IAuthRepository {
     _persistSession(
       token:     entity.accessToken ?? '',
       refresh:   entity.refreshToken ?? '',
+      firstName: entity.firstName,
+      lastName:  entity.lastName,
+      email:     entity.email,
+      role:      entity.role,
+    );
+
+    return entity;
+  }
+
+  // Handles dj-rest-auth social login response: {access, refresh, user:{pk,...}}
+  UserEntity _handleSocialAuthResponse(Map<String, dynamic> data) {
+    final access  = data['access']  as String? ?? '';
+    final refresh = data['refresh'] as String? ?? '';
+    final user    = data['user']    as Map<String, dynamic>? ?? {};
+
+    final entity = UserEntity(
+      id:           user['pk']         as int?    ?? user['id'] as int? ?? 0,
+      firstName:    user['first_name'] as String? ?? '',
+      lastName:     user['last_name']  as String? ?? '',
+      email:        user['email']      as String? ?? '',
+      role:         'citoyen',
+      accessToken:  access,
+      refreshToken: refresh,
+    );
+
+    _persistSession(
+      token:     access,
+      refresh:   refresh,
       firstName: entity.firstName,
       lastName:  entity.lastName,
       email:     entity.email,

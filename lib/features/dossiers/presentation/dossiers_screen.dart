@@ -1,64 +1,14 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
+import '../../../core/constants/api_constants.dart';
+import '../../../core/l10n/app_strings.dart';
+import '../../../core/services/api_service.dart';
 import '../../../shared/widgets/app_bottom_nav.dart';
+import '../../auth/infrastructure/auth_repository_impl.dart';
 import '../domain/entities/dossier_entity.dart';
-
-// Mock data — replace with API calls to GET /api/v1/demandes/ and GET /api/v1/dossiers/
-final _mockDemandes = [
-  DossierEntity(
-    id: 4, numero: 'JF-2026-004',
-    titre: 'Pension alimentaire',
-    categorie: 'Droit de la famille',
-    description: 'Non-paiement de la pension après divorce.',
-    statut: DossierStatut.en_attente,
-    region: 'Centre',
-    dateCreation: DateTime(2026, 6, 8), dateMaj: DateTime(2026, 6, 8),
-  ),
-  DossierEntity(
-    id: 5, numero: 'JF-2026-005',
-    titre: 'Harcèlement au travail',
-    categorie: 'Droit du travail',
-    description: 'Comportement abusif répété de la hiérarchie.',
-    statut: DossierStatut.en_attente,
-    region: 'Littoral',
-    dateCreation: DateTime(2026, 6, 9), dateMaj: DateTime(2026, 6, 9),
-  ),
-];
-
-final _mockDossiers = [
-  DossierEntity(
-    id: 1, numero: 'JF-2026-001',
-    titre: 'Violence conjugale',
-    categorie: 'VBG',
-    description: 'Situation de violence répétée au domicile conjugal.',
-    statut: DossierStatut.urgent,
-    specialisteNom: 'Me. Fotso Jean', specialisteRole: 'Juriste',
-    region: 'Centre',
-    dateCreation: DateTime(2026, 5, 1), dateMaj: DateTime(2026, 6, 9),
-  ),
-  DossierEntity(
-    id: 2, numero: 'JF-2026-002',
-    titre: 'Licenciement abusif',
-    categorie: 'Droit du travail',
-    description: 'Rupture de contrat sans motif valable.',
-    statut: DossierStatut.en_cours,
-    specialisteNom: 'Me. Ateba Rose', specialisteRole: 'Juriste',
-    region: 'Littoral',
-    dateCreation: DateTime(2026, 5, 10), dateMaj: DateTime(2026, 6, 7),
-  ),
-  DossierEntity(
-    id: 3, numero: 'JF-2026-003',
-    titre: 'Litige foncier',
-    categorie: 'Droit foncier',
-    description: 'Conflit de propriété sur un terrain familial.',
-    statut: DossierStatut.resolu,
-    specialisteNom: 'Me. Ngo Pauline', specialisteRole: 'Juriste',
-    region: 'Ouest',
-    dateCreation: DateTime(2026, 4, 20), dateMaj: DateTime(2026, 6, 1),
-  ),
-];
 
 
 class DossiersScreen extends StatefulWidget {
@@ -68,7 +18,6 @@ class DossiersScreen extends StatefulWidget {
   State<DossiersScreen> createState() => _DossiersScreenState();
 }
 
-// Filter mode: null = all, true = demandes only, false = dossiers only + optional status
 enum _ViewFilter { all, demandes, enCours, urgent, resolu }
 
 class _DossiersScreenState extends State<DossiersScreen> {
@@ -76,15 +25,62 @@ class _DossiersScreenState extends State<DossiersScreen> {
   _ViewFilter _filtre = _ViewFilter.all;
   String _query = '';
 
-  bool _matchesFilter(DossierEntity d) {
-    return switch (_filtre) {
-      _ViewFilter.all      => true,
-      _ViewFilter.demandes => d.statut == DossierStatut.en_attente,
-      _ViewFilter.enCours  => d.statut == DossierStatut.en_cours,
-      _ViewFilter.urgent   => d.statut == DossierStatut.urgent,
-      _ViewFilter.resolu   => d.statut == DossierStatut.resolu,
-    };
+  List<DossierEntity> _demandes = [];
+  List<DossierEntity> _dossiers = [];
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
   }
+
+  Future<void> _load() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final results = await Future.wait([
+        ApiService.instance.get(ApiConstants.demandes),
+        ApiService.instance.get(ApiConstants.dossiers),
+      ]);
+
+      final demandesJson = results[0].data as List<dynamic>;
+      final dossiersJson = results[1].data as List<dynamic>;
+
+      if (!mounted) return;
+      setState(() {
+        // Exclude APPROUVE demandes: they have a corresponding Dossier
+        // already returned by /dossiers/ and displayed in the dossiers section.
+        _demandes = demandesJson
+            .map((e) => DossierEntity.fromDemande(e as Map<String, dynamic>))
+            .where((d) => d.statut != DossierStatut.approuve)
+            .toList();
+        _dossiers = dossiersJson
+            .map((e) => DossierEntity.fromDossier(e as Map<String, dynamic>))
+            .toList();
+        _loading = false;
+      });
+    } on DioException catch (e) {
+      if (!mounted) return;
+      if (e.error is SessionExpiredException) {
+        await AuthRepositoryImpl().logout();
+        if (mounted) context.go('/login');
+        return;
+      }
+      setState(() {
+        _error = ApiService.extractError(e.response?.data);
+        _loading = false;
+      });
+    }
+  }
+
+  bool _matchesFilter(DossierEntity d) => switch (_filtre) {
+    _ViewFilter.all      => true,
+    _ViewFilter.demandes => d.statut == DossierStatut.en_attente || d.statut == DossierStatut.approuve,
+    _ViewFilter.enCours  => d.statut == DossierStatut.en_cours,
+    _ViewFilter.urgent   => d.statut == DossierStatut.urgent,
+    _ViewFilter.resolu   => d.statut == DossierStatut.resolu,
+  };
 
   bool _matchesQuery(DossierEntity d) {
     if (_query.isEmpty) return true;
@@ -94,13 +90,11 @@ class _DossiersScreenState extends State<DossiersScreen> {
         d.categorie.toLowerCase().contains(q);
   }
 
-  List<DossierEntity> get _filteredDemandes => _mockDemandes
-      .where((d) => _matchesFilter(d) && _matchesQuery(d))
-      .toList();
+  List<DossierEntity> get _filteredDemandes =>
+      _demandes.where((d) => _matchesFilter(d) && _matchesQuery(d)).toList();
 
-  List<DossierEntity> get _filteredDossiers => _mockDossiers
-      .where((d) => _matchesFilter(d) && _matchesQuery(d))
-      .toList();
+  List<DossierEntity> get _filteredDossiers =>
+      _dossiers.where((d) => _matchesFilter(d) && _matchesQuery(d)).toList();
 
   @override
   void dispose() {
@@ -110,103 +104,28 @@ class _DossiersScreenState extends State<DossiersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final urgents = _mockDossiers.where((d) => d.statut == DossierStatut.urgent).length;
+    final s = AppStrings.of(context);
+    final urgents = _dossiers.where((d) => d.statut == DossierStatut.urgent).length;
 
     return Scaffold(
       backgroundColor: AppColors.fond,
       body: Column(
         children: [
           _DossiersHeader(
-            demandesCount: _mockDemandes.length,
-            dossiersCount: _mockDossiers.length,
+            demandesCount: _demandes.length,
+            dossiersCount: _dossiers.length,
             urgentsCount: urgents,
             onNew: () => context.go('/new-dossier'),
           ),
-          Expanded(
-            child: CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
-                    child: _SearchBar(
-                      controller: _searchCtrl,
-                      onChanged: (v) => setState(() => _query = v),
-                    ),
-                  ),
-                ),
-
-                SliverToBoxAdapter(
-                  child: _FilterChips(
-                    selected: _filtre,
-                    onSelected: (f) => setState(() => _filtre = f),
-                  ),
-                ),
-
-                // ── Demandes section ──────────────────────────────────────
-                if (_filtre == _ViewFilter.all || _filtre == _ViewFilter.demandes) ...[
-                  if (_filteredDemandes.isNotEmpty) ...[
-                    _SectionHeader(
-                      icon: Icons.pending_actions_rounded,
-                      label: 'Mes demandes',
-                      subtitle: 'En attente d\'assignation',
-                      count: _filteredDemandes.length,
-                      accentColor: AppColors.grisMid,
-                      bgColor: const Color(0xFFF4F4F4),
-                    ),
-                    SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (_, i) => _DemandeCard(demande: _filteredDemandes[i]),
-                          childCount: _filteredDemandes.length,
-                        ),
-                      ),
-                    ),
-                    // Lifecycle arrow between sections
-                    if (_filteredDossiers.isNotEmpty)
-                      const SliverToBoxAdapter(child: _LifecycleArrow()),
-                  ],
-                ],
-
-                // ── Dossiers section ──────────────────────────────────────
-                if (_filtre != _ViewFilter.demandes) ...[
-                  if (_filteredDossiers.isNotEmpty) ...[
-                    _SectionHeader(
-                      icon: Icons.folder_copy_rounded,
-                      label: 'Mes dossiers',
-                      subtitle: 'Pris en charge par un spécialiste',
-                      count: _filteredDossiers.length,
-                      accentColor: AppColors.bleuNuit,
-                      bgColor: const Color(0xFFEEF2FF),
-                    ),
-                    SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (_, i) => _DossierCard(dossier: _filteredDossiers[i]),
-                          childCount: _filteredDossiers.length,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-
-                // Empty state
-                if (_filteredDemandes.isEmpty && _filteredDossiers.isEmpty)
-                  const SliverFillRemaining(child: _EmptyState()),
-
-                const SliverToBoxAdapter(child: SizedBox(height: 96)),
-              ],
-            ),
-          ),
+          Expanded(child: _buildBody()),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.go('/new-dossier'),
         backgroundColor: AppColors.bleuNuit,
         icon: const Icon(Icons.add_rounded, color: AppColors.orPale),
-        label: const Text('Nouvelle demande',
-            style: TextStyle(
+        label: Text(s.dossiersNewBtn,
+            style: const TextStyle(
               fontFamily: 'GoogleSans',
               fontWeight: FontWeight.w700,
               color: AppColors.orPale,
@@ -214,6 +133,112 @@ class _DossiersScreenState extends State<DossiersScreen> {
             )),
       ),
       bottomNavigationBar: const AppBottomNav(current: NavTab.dossiers),
+    );
+  }
+
+  Widget _buildBody() {
+    final s = AppStrings.of(context);
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator(color: AppColors.bleuNuit));
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.wifi_off_rounded, size: 48, color: AppColors.grisLight),
+            const SizedBox(height: 16),
+            Text(_error!, textAlign: TextAlign.center,
+                style: AppTextStyles.bodySm.copyWith(color: AppColors.grisMid)),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _load,
+              icon: const Icon(Icons.refresh_rounded),
+              label: Text(s.btnRetry),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.bleuNuit,
+                  foregroundColor: AppColors.blanc),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      color: AppColors.bleuNuit,
+      onRefresh: _load,
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+              child: _SearchBar(
+                controller: _searchCtrl,
+                onChanged: (v) => setState(() => _query = v),
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: _FilterChips(
+              selected: _filtre,
+              onSelected: (f) => setState(() => _filtre = f),
+            ),
+          ),
+
+          // ── Demandes ───────────────────────────────────────────────
+          if (_filtre == _ViewFilter.all || _filtre == _ViewFilter.demandes) ...[
+            if (_filteredDemandes.isNotEmpty) ...[
+              _SectionHeader(
+                icon: Icons.pending_actions_rounded,
+                label: 'Mes demandes',
+                subtitle: 'En attente d\'assignation',
+                count: _filteredDemandes.length,
+                accentColor: AppColors.grisMid,
+                bgColor: const Color(0xFFF4F4F4),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (_, i) => _DemandeCard(demande: _filteredDemandes[i]),
+                    childCount: _filteredDemandes.length,
+                  ),
+                ),
+              ),
+              if (_filteredDossiers.isNotEmpty)
+                const SliverToBoxAdapter(child: _LifecycleArrow()),
+            ],
+          ],
+
+          // ── Dossiers ───────────────────────────────────────────────
+          if (_filtre != _ViewFilter.demandes) ...[
+            if (_filteredDossiers.isNotEmpty) ...[
+              _SectionHeader(
+                icon: Icons.folder_copy_rounded,
+                label: 'Mes dossiers',
+                subtitle: 'Pris en charge par un spécialiste',
+                count: _filteredDossiers.length,
+                accentColor: AppColors.bleuNuit,
+                bgColor: const Color(0xFFEEF2FF),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (_, i) => _DossierCard(dossier: _filteredDossiers[i]),
+                    childCount: _filteredDossiers.length,
+                  ),
+                ),
+              ),
+            ],
+          ],
+
+          if (_filteredDemandes.isEmpty && _filteredDossiers.isEmpty)
+            const SliverFillRemaining(child: _EmptyState()),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 96)),
+        ],
+      ),
     );
   }
 }
@@ -232,6 +257,7 @@ class _DossiersHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppStrings.of(context);
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -250,7 +276,7 @@ class _DossiersHeader extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: Text('Mes Dossiers',
+                    child: Text(s.dossiersTitle,
                         style: AppTextStyles.h2.copyWith(color: AppColors.blanc)),
                   ),
                   GestureDetector(
@@ -262,13 +288,13 @@ class _DossiersHeader extends StatelessWidget {
                         borderRadius: BorderRadius.circular(10),
                         boxShadow: const [AppColors.ombreOr],
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.add_rounded, color: AppColors.blanc, size: 16),
-                          SizedBox(width: 4),
-                          Text('Nouvelle demande',
-                              style: TextStyle(
+                          const Icon(Icons.add_rounded, color: AppColors.blanc, size: 16),
+                          const SizedBox(width: 4),
+                          Text(s.dossiersNewBtn,
+                              style: const TextStyle(
                                 fontFamily: 'GoogleSans',
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
@@ -379,6 +405,7 @@ class _SearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppStrings.of(context);
     return Container(
       decoration: BoxDecoration(
         color: AppColors.blanc,
@@ -391,7 +418,7 @@ class _SearchBar extends StatelessWidget {
         onChanged: onChanged,
         style: AppTextStyles.bodySm.copyWith(fontSize: 16),
         decoration: InputDecoration(
-          hintText: 'Rechercher par titre, numéro, catégorie...',
+          hintText: s.dossiersSearch,
           hintStyle: AppTextStyles.bodySm.copyWith(color: AppColors.grisLight),
           prefixIcon: const Icon(Icons.search_rounded, color: AppColors.grisLight, size: 20),
           border: InputBorder.none,
@@ -411,12 +438,13 @@ class _FilterChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppStrings.of(context);
     final filters = <(String, _ViewFilter, Color, IconData)>[
-      ('Tous',       _ViewFilter.all,      AppColors.bleuNuit, Icons.apps_rounded),
-      ('Demandes',   _ViewFilter.demandes, AppColors.grisMid,  Icons.pending_actions_rounded),
-      ('En cours',   _ViewFilter.enCours,  AppColors.or,       Icons.play_circle_outline_rounded),
-      ('Urgents',    _ViewFilter.urgent,   AppColors.rouge,    Icons.priority_high_rounded),
-      ('Résolus',    _ViewFilter.resolu,   AppColors.emeraude, Icons.check_circle_outline_rounded),
+      (s.filterAll,        _ViewFilter.all,      AppColors.bleuNuit, Icons.apps_rounded),
+      (s.filterDemandes,   _ViewFilter.demandes, AppColors.grisMid,  Icons.pending_actions_rounded),
+      (s.filterInProgress, _ViewFilter.enCours,  AppColors.or,       Icons.play_circle_outline_rounded),
+      (s.filterUrgent,     _ViewFilter.urgent,   AppColors.rouge,    Icons.priority_high_rounded),
+      (s.filterResolved,   _ViewFilter.resolu,   AppColors.emeraude, Icons.check_circle_outline_rounded),
     ];
 
     return SizedBox(
@@ -565,6 +593,7 @@ class _DemandeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppStrings.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -581,9 +610,9 @@ class _DemandeCard extends StatelessWidget {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 7),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+            decoration: const BoxDecoration(
+              color: Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -591,8 +620,8 @@ class _DemandeCard extends StatelessWidget {
                 const Icon(Icons.hourglass_top_rounded,
                     size: 14, color: AppColors.grisMid),
                 const SizedBox(width: 6),
-                const Text('En attente d\'assignation',
-                    style: TextStyle(
+                Text(s.statusPending,
+                    style: const TextStyle(
                       fontFamily: 'GoogleSans',
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -661,7 +690,7 @@ class _DemandeCard extends StatelessWidget {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Un spécialiste vous sera assigné prochainement.',
+                          s.demandeAwaitAssignment,
                           style: AppTextStyles.bodySm.copyWith(
                             fontSize: 13,
                             color: AppColors.grisMid,
@@ -677,9 +706,9 @@ class _DemandeCard extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
-                    onPressed: () {},
+                    onPressed: () => context.go('/dossier-detail', extra: demande),
                     icon: const Icon(Icons.visibility_outlined, size: 16),
-                    label: const Text('Suivre ma demande'),
+                    label: Text(s.demandeBtnFollow),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.grisMid,
                       side: const BorderSide(color: Color(0x33000000)),
@@ -721,6 +750,7 @@ class _DossierCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppStrings.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -814,7 +844,7 @@ class _DossierCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Text('Spécialiste assigné',
+                  Text(s.specialistAssigned,
                       style: const TextStyle(
                         fontFamily: 'GoogleSans',
                         fontSize: 11,
@@ -829,14 +859,14 @@ class _DossierCard extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
-                onPressed: () {},
+                onPressed: () => context.go('/dossier-detail', extra: dossier),
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(color: _borderColor.withAlpha(120)),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
                   padding: const EdgeInsets.symmetric(vertical: 10),
                 ),
-                child: Text('Voir le dossier',
+                child: Text(s.dossierBtnView,
                     style: TextStyle(
                       fontFamily: 'GoogleSans',
                       fontSize: 15,
@@ -863,12 +893,14 @@ class _StatusTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppStrings.of(context);
     final (label, color, bg) = switch (statut) {
-      DossierStatut.urgent     => ('Urgent',     AppColors.rouge,    AppColors.rougeLight),
-      DossierStatut.en_cours   => ('En cours',   AppColors.orDark,   AppColors.orLight),
-      DossierStatut.resolu     => ('Résolu',     AppColors.emeraude, AppColors.emeraudeLight),
-      DossierStatut.en_attente => ('En attente', AppColors.grisMid,  const Color(0xFFF0F0F0)),
-      DossierStatut.rejete     => ('Rejeté',     AppColors.rouge,    AppColors.rougeLight),
+      DossierStatut.urgent     => (s.statusUrgent,    AppColors.rouge,    AppColors.rougeLight),
+      DossierStatut.en_cours   => (s.statusInProgress, AppColors.orDark,   AppColors.orLight),
+      DossierStatut.resolu     => (s.statusResolved,  AppColors.emeraude, AppColors.emeraudeLight),
+      DossierStatut.approuve   => (s.statusApproved,  AppColors.emeraude, AppColors.emeraudeLight),
+      DossierStatut.en_attente => (s.statusPending,   AppColors.grisMid,  const Color(0xFFF0F0F0)),
+      DossierStatut.rejete     => (s.statusRejected,  AppColors.rouge,    AppColors.rougeLight),
     };
     return _Tag(label: label, color: color, bg: bg, bold: true);
   }
@@ -910,6 +942,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppStrings.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -924,10 +957,10 @@ class _EmptyState extends StatelessWidget {
                 size: 46, color: AppColors.or),
           ),
           const SizedBox(height: 24),
-          Text('Aucun résultat', style: AppTextStyles.h3.copyWith(fontSize: 20)),
+          Text(s.dossiersEmpty, style: AppTextStyles.h3.copyWith(fontSize: 20)),
           const SizedBox(height: 10),
           Text(
-            'Soumettez votre première demande\nd\'assistance juridique.',
+            s.dossiersEmptyDesc,
             textAlign: TextAlign.center,
             style: AppTextStyles.bodySm.copyWith(fontSize: 16, height: 1.6),
           ),
