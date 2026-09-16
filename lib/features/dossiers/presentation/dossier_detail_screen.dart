@@ -269,6 +269,11 @@ class _DossierDetailScreenState extends State<DossierDetailScreen> {
                   _canalFromRole(d.specialisteRole),
                   d.specialisteNom!,
                 ),
+                onBookRdv: () => context.push('/rdv/book', extra: {
+                  'dossierId':      d.id,
+                  'canal':          _canalFromRole(d.specialisteRole),
+                  'specialisteNom': d.specialisteNom!,
+                }),
               ),
               const SizedBox(height: 16),
             ],
@@ -902,9 +907,11 @@ class _SpecialistCard extends StatelessWidget {
     required this.nom,
     required this.role,
     required this.onChat,
+    required this.onBookRdv,
   });
   final String nom, role;
   final VoidCallback onChat;
+  final VoidCallback onBookRdv;
 
   Color get _roleColor => switch (role.toLowerCase()) {
     'juriste'     => AppColors.bleuMid,
@@ -965,22 +972,42 @@ class _SpecialistCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: onChat,
-              icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
-              label: Text(AppStrings.of(context).detailContacter(role)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _roleColor,
-                foregroundColor: AppColors.blanc,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                textStyle: const TextStyle(
-                  fontFamily: 'GoogleSans', fontSize: 15, fontWeight: FontWeight.w700,
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: onChat,
+                  icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
+                  label: Text(AppStrings.of(context).detailContacter(role)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _roleColor,
+                    foregroundColor: AppColors.blanc,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    textStyle: const TextStyle(
+                      fontFamily: 'GoogleSans', fontSize: 13, fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
               ),
-            ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onBookRdv,
+                  icon: const Icon(Icons.calendar_month_rounded, size: 16),
+                  label: Text(AppStrings.of(context).rdvBookBtn),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _roleColor,
+                    side: BorderSide(color: _roleColor.withAlpha(140)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    textStyle: const TextStyle(
+                      fontFamily: 'GoogleSans', fontSize: 13, fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
