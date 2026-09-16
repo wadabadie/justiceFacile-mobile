@@ -161,6 +161,17 @@ class AppStrings {
     required this.propositionBtnAccept, required this.propositionAccepted,
     required this.propositionRefused, required this.propositionError,
     required this.propositionConfirmRefuseTitle, required this.propositionConfirmRefuseMsg,
+    // ── Forgot password ───────────────────────────────────────────────────────
+    required this.forgotTitle, required this.forgotSubtitle,
+    required this.forgotEmailHint, required this.forgotBtnSend,
+    required this.forgotSuccessTitle, required this.forgotSuccessDesc,
+    required this.forgotSuccessBack, required this.forgotError,
+    // ── Reset password ────────────────────────────────────────────────────────
+    required this.resetTitle, required this.resetSubtitle,
+    required this.resetNewPwdHint, required this.resetConfirmPwdHint,
+    required this.resetBtnConfirm, required this.resetSuccessTitle,
+    required this.resetSuccessDesc, required this.resetSuccessBackLogin,
+    required this.resetErrExpired, required this.resetErrGeneric,
     // ── Politique ─────────────────────────────────────────────────────────────
     required this.politiqueTitle, required this.politiqueLastUpdateLabel,
     required this.politiqueContactTitle, required this.politiqueContactDelay,
@@ -339,6 +350,11 @@ class AppStrings {
   final String propositionTitle, propositionSubtitle, propositionBtnAccept;
   final String propositionAccepted, propositionRefused, propositionError;
   final String propositionConfirmRefuseTitle, propositionConfirmRefuseMsg;
+  final String forgotTitle, forgotSubtitle, forgotEmailHint, forgotBtnSend;
+  final String forgotSuccessTitle, forgotSuccessDesc, forgotSuccessBack, forgotError;
+  final String resetTitle, resetSubtitle, resetNewPwdHint, resetConfirmPwdHint;
+  final String resetBtnConfirm, resetSuccessTitle, resetSuccessDesc, resetSuccessBackLogin;
+  final String resetErrExpired, resetErrGeneric;
   // ── Politique ────────────────────────────────────────────────────────────────
   final String politiqueTitle, politiqueLastUpdateLabel;
   final String politiqueContactTitle, politiqueContactDelay;
@@ -655,6 +671,24 @@ ndPrivacy: 'Vos informations sont confidentielles et ne seront partagées qu\'av
     propositionError: 'Impossible de confirmer pour le moment.',
     propositionConfirmRefuseTitle: 'Refuser ce spécialiste ?',
     propositionConfirmRefuseMsg: 'Votre demande retournera en attente et un autre spécialiste pourra se proposer.',
+    forgotTitle: 'Mot de passe oublié',
+    forgotSubtitle: 'Entrez votre email. Si un compte existe, vous recevrez un lien de réinitialisation.',
+    forgotEmailHint: 'Adresse email',
+    forgotBtnSend: 'Envoyer le lien',
+    forgotSuccessTitle: 'Vérifiez votre boîte mail',
+    forgotSuccessDesc: 'Si un compte existe avec cet email, un lien de réinitialisation vient de lui être envoyé. Ouvrez ce lien depuis ce téléphone pour choisir un nouveau mot de passe.',
+    forgotSuccessBack: 'Retour à la connexion',
+    forgotError: 'Impossible d\'envoyer le lien pour le moment.',
+    resetTitle: 'Nouveau mot de passe',
+    resetSubtitle: 'Choisissez un nouveau mot de passe (8 caractères minimum).',
+    resetNewPwdHint: 'Nouveau mot de passe',
+    resetConfirmPwdHint: 'Confirmer le mot de passe',
+    resetBtnConfirm: 'Réinitialiser',
+    resetSuccessTitle: 'Mot de passe modifié',
+    resetSuccessDesc: 'Votre mot de passe a été réinitialisé avec succès. Vous pouvez maintenant vous connecter.',
+    resetSuccessBackLogin: 'Se connecter',
+    resetErrExpired: 'Ce lien est invalide ou a expiré. Refaites une demande depuis l\'écran de connexion.',
+    resetErrGeneric: 'Impossible de réinitialiser pour le moment.',
 
     politiqueTitle: 'Politique de confidentialité',
     politiqueLastUpdateLabel: 'Dernière mise à jour :',
@@ -978,6 +1012,24 @@ ndPrivacy: 'Your information is confidential and will only be shared with the sp
     propositionError: 'Unable to confirm at the moment.',
     propositionConfirmRefuseTitle: 'Refuse this specialist?',
     propositionConfirmRefuseMsg: 'Your request will go back to pending and another specialist may propose themselves.',
+    forgotTitle: 'Forgot password',
+    forgotSubtitle: 'Enter your email. If an account exists, we will send you a reset link.',
+    forgotEmailHint: 'Email address',
+    forgotBtnSend: 'Send link',
+    forgotSuccessTitle: 'Check your inbox',
+    forgotSuccessDesc: 'If an account exists with this email, a reset link has just been sent. Open the link from this phone to choose a new password.',
+    forgotSuccessBack: 'Back to sign in',
+    forgotError: 'Unable to send the link at the moment.',
+    resetTitle: 'New password',
+    resetSubtitle: 'Choose a new password (8 characters minimum).',
+    resetNewPwdHint: 'New password',
+    resetConfirmPwdHint: 'Confirm password',
+    resetBtnConfirm: 'Reset',
+    resetSuccessTitle: 'Password updated',
+    resetSuccessDesc: 'Your password has been reset successfully. You can now sign in.',
+    resetSuccessBackLogin: 'Sign in',
+    resetErrExpired: 'This link is invalid or has expired. Request a new one from the sign-in screen.',
+    resetErrGeneric: 'Unable to reset at the moment.',
 
     politiqueTitle: 'Privacy Policy',
     politiqueLastUpdateLabel: 'Last updated:',

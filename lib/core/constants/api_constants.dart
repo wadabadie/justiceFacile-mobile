@@ -16,6 +16,8 @@ abstract final class ApiConstants {
   static const configurerPin   = '$baseUrl/auth/configurer-pin-detresse/';
   static const supprimerCompte = '$baseUrl/auth/supprimer-mon-compte/';
   static const fcmToken        = '$baseUrl/auth/fcm-token/';
+  static const demanderResetMdp  = '$baseUrl/auth/mot-de-passe/demander-reset/';
+  static const confirmerResetMdp = '$baseUrl/auth/mot-de-passe/confirmer-reset/';
 
   // ── Textes de loi ───────────────────────────────────────────────────────────
   static const textesLoi         = '$baseUrl/textes-loi/';

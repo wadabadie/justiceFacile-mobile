@@ -144,6 +144,35 @@ final class AuthRepositoryImpl implements IAuthRepository {
     }
   }
 
+  // Requests a password reset link (deep link) to be sent by email. Backend
+  // always returns 200 with a generic message to avoid account enumeration.
+  Future<void> requestPasswordReset(String email) async {
+    try {
+      await _dio.post(ApiConstants.demanderResetMdp, data: {'email': email});
+    } on DioException catch (_) {
+      throw Exception('reset_request_failed');
+    }
+  }
+
+  // Confirms the reset with uid/token extracted from the deep link and the
+  // new password chosen by the user.
+  Future<void> confirmPasswordReset({
+    required String uid,
+    required String token,
+    required String newPassword,
+  }) async {
+    try {
+      await _dio.post(ApiConstants.confirmerResetMdp, data: {
+        'uid': uid,
+        'token': token,
+        'new_password': newPassword,
+      });
+    } on DioException catch (e) {
+      final msg = (e.response?.data as Map?)?['error'] ?? 'reset_confirm_failed';
+      throw Exception(msg);
+    }
+  }
+
   @override
   Future<void> logout() async {
     final p = await SharedPreferences.getInstance();

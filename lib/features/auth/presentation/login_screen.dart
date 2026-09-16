@@ -156,7 +156,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
-                        onPressed: () {},
+                        onPressed: () => context.go('/forgot-password'),
                         child: Text(s.loginForgot,
                             style: AppTextStyles.labelSm.copyWith(color: AppColors.orDark)),
                       ),

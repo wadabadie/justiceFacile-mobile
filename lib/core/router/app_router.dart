@@ -5,6 +5,8 @@ import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/presentation/verify_email_screen.dart';
+import '../../features/auth/presentation/forgot_password_screen.dart';
+import '../../features/auth/presentation/reset_password_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/dossiers/presentation/dossiers_screen.dart';
 import '../../features/dossiers/presentation/new_dossier_screen.dart';
@@ -54,6 +56,18 @@ abstract final class AppRouter {
         pageBuilder: (_, state) {
           final email = state.extra as String? ?? '';
           return _slidePage(state, VerifyEmailScreen(email: email));
+        },
+      ),
+      GoRoute(
+        path: '/forgot-password',
+        pageBuilder: (_, state) => _slidePage(state, const ForgotPasswordScreen()),
+      ),
+      GoRoute(
+        path: '/reset-password/:uid/:token',
+        pageBuilder: (_, state) {
+          final uid = state.pathParameters['uid'] ?? '';
+          final token = state.pathParameters['token'] ?? '';
+          return _slidePage(state, ResetPasswordScreen(uid: uid, token: token));
         },
       ),
       GoRoute(
